@@ -1,0 +1,42 @@
+<?php
+
+/**
+ * @file
+ * Validates phone number.
+ *
+ * Adds element validator to telephone_default widget to make sure if phone
+ * number is valid.
+ */
+
+/**
+ * Implements hook_field_widget_WIDGET_TYPE_form_alter().
+ */
+function telephone_validation_field_widget_telephone_default_form_alter(&$element, &$form_state, $context) {
+  $element['value']['#element_validate'] = array('_telephone_validation_element');
+}
+
+/**
+ * Telephone element validation.
+ */
+function _telephone_validation_element($element, &$form_state) {
+  $value = $element ['#value'];
+  if ($value != '') {
+    if (stripos($value, '+') !== 0) {
+      form_error($element, t('%name telephone number has to start with plus (+) and country code.', array('%name' => $element['#title'])));
+      return FALSE;
+    }
+    $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
+    try {
+      $number = $phoneUtil->parse($value, NULL);
+    }
+    catch (Exception $e) {
+      watchdog_exception('telephone_validation', $e);
+      form_error($element, t('%name is not a valid telephone number.', array('%name' => $element['#title'])));
+      return FALSE;
+    }
+    if (!$phoneUtil->isValidNumber($number)) {
+      form_error($element, t('%name is not a valid telephone number.', array('%name' => $element['#title'])));
+      return FALSE;
+    }
+  }
+}
