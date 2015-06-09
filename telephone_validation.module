@@ -9,11 +9,48 @@
  */
 
 /**
- * Implements hook_field_widget_settings_form().
+ * Implements hook_form_FORM_ID_alter().
  */
-function telephone_validation_widget_settings_alter() {
-  dpm($field);
-  dpm($instance);
+function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
+  $instance = $form['#instance'];
+  if ($instance['widget']['type'] == 'telephone_default') {
+
+    include_once DRUPAL_ROOT . '/includes/iso.inc';
+
+    if (!isset($instance['widget']['settings']['telephone_validation'])) {
+      $instance['widget']['settings']['telephone_validation'] = array();
+    }
+    $settings = $instance['widget']['settings']['telephone_validation'];
+
+
+    if (!is_array($form['instance']['widget']['settings'])) {
+      $form['instance']['widget']['settings'] = array();
+    }
+    $form['instance']['widget']['settings']['telephone_validation'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Validation'),
+    );
+    $form['instance']['widget']['settings']['telephone_validation']['format'] = array(
+      '#type' => 'select',
+      '#title' => t('Telephone format'),
+      '#default_value' => isset($settings['format']) ? $settings['format'] : \libphonenumber\PhoneNumberFormat::E164,
+      '#options' => array(
+        \libphonenumber\PhoneNumberFormat::E164 => t('E164'),
+//        \libphonenumber\PhoneNumberFormat::INTERNATIONAL => t('International'),
+//        \libphonenumber\PhoneNumberFormat::NATIONAL => t('National'),
+//        \libphonenumber\PhoneNumberFormat::RFC3966 => t('RFC3966'),
+      ),
+    );
+    $form['instance']['widget']['settings']['telephone_validation']['available_countries'] = array(
+      '#type' => 'select',
+      '#title' => t('Available countries'),
+      '#description' => t('If you wont select any countries - all countries are available'),
+      '#default_value' => isset($settings['available_countries']) ? $settings['available_countries'] : array(),
+      '#multiple' => TRUE,
+      '#options' => _country_get_predefined_list(),
+    );
+  }
+
 }
 
 /**
@@ -27,7 +64,13 @@ function telephone_validation_field_widget_telephone_default_form_alter(&$elemen
  * Telephone element validation.
  */
 function _telephone_validation_element($element, &$form_state) {
-  $value = $element ['#value'];
+  $value = $element['#value'];
+  $instance = $form_state['field'][$element['#field_name']][$element['#language']]['instance'];
+  if (!isset($instance['widget']['settings']['telephone_validation'])) {
+    $instance['widget']['settings']['telephone_validation'] = array();
+  }
+  $settings = $instance['widget']['settings']['telephone_validation'];
+
   if ($value != '') {
     if (stripos($value, '+') !== 0) {
       form_error($element, t('%name telephone number has to start with plus (+) and country code.', array('%name' => $element['#title'])));
@@ -46,5 +89,10 @@ function _telephone_validation_element($element, &$form_state) {
       form_error($element, t('%name is not a valid telephone number.', array('%name' => $element['#title'])));
       return FALSE;
     }
+    if (!empty($settings['available_countries']) && (!($country = $phoneUtil->getRegionCodeForNumber($number)) || !isset($settings['available_countries'][$country]))) {
+      form_error($element, t('Telephone numbers from your country are not available in %name field.', array('%name' => $element['#title'])));
+      return FALSE;
+    }
+
   }
 }
