@@ -2,51 +2,64 @@
 
 /**
  * @file
- * Validates phone number.
+ * Validate phone number.
  *
- * Adds element validator to telephone_default widget to make sure if phone
- * number is valid.
+ * Adds element validator to telephone_default widget to make sure phone has
+ * a valid format.
  */
 
 /**
  * Implements hook_form_FORM_ID_alter().
  */
 function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
+  // Get field and instance.
+  $field = $form['#field'];
   $instance = $form['#instance'];
-  if ($instance['widget']['type'] == 'telephone_default') {
 
-    include_once DRUPAL_ROOT . '/includes/iso.inc';
+  if ($instance['widget']['type'] == 'telephone_default' && !$field['locked']) {
 
     if (!isset($instance['widget']['settings']['telephone_validation'])) {
-      $instance['widget']['settings']['telephone_validation'] = array();
+      // If that's a brand new instance use default values.
+      $instance['widget']['settings']['telephone_validation'] = array(
+        'format' => \libphonenumber\PhoneNumberFormat::E164,
+        'available_countries' => array(),
+      );
     }
     $settings = $instance['widget']['settings']['telephone_validation'];
 
     if (!isset($form['instance']['widget']['settings'])) {
+      // Initialize settings array.
       $form['instance']['widget']['settings'] = array();
     }
+
+    // Add parent fieldset for module settings.
     $form['instance']['widget']['settings']['telephone_validation'] = array(
       '#type' => 'fieldset',
       '#title' => t('Validation'),
     );
+
+    // Right now format field supports E164 format only (just to be sure that
+    // phone validator will work correctly).
     $form['instance']['widget']['settings']['telephone_validation']['format'] = array(
       '#type' => 'select',
       '#title' => t('Telephone format'),
-      '#default_value' => isset($settings['format']) ? $settings['format'] : \libphonenumber\PhoneNumberFormat::E164,
+      '#default_value' => $settings['format'],
       '#options' => array(
         \libphonenumber\PhoneNumberFormat::E164 => t('E164'),
       ),
     );
+
+    // Populate list of countries.
+    include_once DRUPAL_ROOT . '/includes/iso.inc';
     $form['instance']['widget']['settings']['telephone_validation']['available_countries'] = array(
       '#type' => 'select',
       '#title' => t('Available countries'),
       '#description' => t('If you wont select any countries - all countries are available'),
-      '#default_value' => isset($settings['available_countries']) ? $settings['available_countries'] : array(),
+      '#default_value' => $settings['available_countries'],
       '#multiple' => TRUE,
       '#options' => _country_get_predefined_list(),
     );
   }
-
 }
 
 /**
@@ -67,28 +80,37 @@ function _telephone_validation_element($element, &$form_state) {
   }
   $settings = $instance['widget']['settings']['telephone_validation'];
 
-  if ($value != '') {
+  // Do validation only if value is not empty.
+  if (!empty($value)) {
+    // Since the only correct phone number format is right now E164, it should
+    // start with + and country code.
     if (stripos($value, '+') !== 0) {
       form_error($element, t('%name telephone number has to start with plus (+) and country code.', array('%name' => $element['#title'])));
       return FALSE;
     }
-    $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
+    // If number looks more or less ok, use google libphoonenumber library to
+    // parse  it.
+    $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
     try {
-      $number = $phoneUtil->parse($value, NULL);
+      // If number will be incorrect (there will be no way to parse it) we will
+      // get an exception here.
+      $number = $phone_util->parse($value, NULL);
     }
     catch (Exception $e) {
+      // Log an exception and show form error.
       watchdog_exception('telephone_validation', $e);
       form_error($element, t('%name is not a valid telephone number.', array('%name' => $element['#title'])));
       return FALSE;
     }
-    if (!$phoneUtil->isValidNumber($number)) {
+    // If number "seems" to be valid - validate it.
+    if (!$phone_util->isValidNumber($number)) {
       form_error($element, t('%name is not a valid telephone number.', array('%name' => $element['#title'])));
       return FALSE;
     }
-    if (!empty($settings['available_countries']) && (!($country = $phoneUtil->getRegionCodeForNumber($number)) || !isset($settings['available_countries'][$country]))) {
+    // If number should come for one of selected countries (per instance).
+    if (!empty($settings['available_countries']) && (!($country = $phone_util->getRegionCodeForNumber($number)) || !isset($settings['available_countries'][$country]))) {
       form_error($element, t('Telephone numbers from your country are not available in %name field.', array('%name' => $element['#title'])));
       return FALSE;
     }
-
   }
 }
