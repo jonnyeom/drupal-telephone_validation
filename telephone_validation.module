@@ -74,7 +74,7 @@ function telephone_validation_field_widget_telephone_default_form_alter(&$elemen
  */
 function _telephone_validation_element($element, &$form_state) {
   $value = $element['#value'];
-  $instance = $form_state['field'][$element['#field_name']][$element['#language']]['instance'];
+  $instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
   if (!isset($instance['widget']['settings']['telephone_validation'])) {
     $instance['widget']['settings']['telephone_validation'] = array();
   }
