@@ -108,8 +108,8 @@ function _telephone_validation_element($element, &$form_state) {
       return FALSE;
     }
     // If number should come for one of selected countries (per instance).
-    if (!empty($settings['available_countries']) && (!($country = $phone_util->getRegionCodeForNumber($number)) || !isset($settings['available_countries'][$country]))) {
-      form_error($element, t('Telephone numbers from your country are not available in %name field.', array('%name' => $element['#title'])));
+    if (!empty($settings['valid_countries']) && (!($country = $phone_util->getRegionCodeForNumber($number)) || !isset($settings['available_countries'][$country]))) {
+      form_error($element, t('Telephone number country of origin is not supported by %name field.', array('%name' => $element['#title'])));
       return FALSE;
     }
   }
