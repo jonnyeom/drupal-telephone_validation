@@ -1,10 +1,10 @@
 Telephone Validation
 ========================
 
-This is very simple module which brings validation to Telephone field
+This is basic module which brings validation to Telephone field instance
 (telephone_default widget). It uses libphonenumber-php library (port of google's
 libphonenumber library).
-Module can discover which country number belongs to and if it's valid number.
+Module can discover where phone number comes from and if it's valid or not.
 
 # Dependencies
 
