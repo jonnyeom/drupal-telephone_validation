@@ -21,8 +21,8 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
     if (!isset($instance['widget']['settings']['telephone_validation'])) {
       // If that's a brand new instance use default values.
       $instance['widget']['settings']['telephone_validation'] = array(
-        'format' => \libphonenumber\PhoneNumberFormat::E164,
-        'available_countries' => array(),
+        'valid_format' => \libphonenumber\PhoneNumberFormat::E164,
+        'valid_countries' => array(),
       );
     }
     $settings = $instance['widget']['settings']['telephone_validation'];
@@ -40,10 +40,10 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
 
     // Right now format field supports E164 format only (just to be sure that
     // phone validator will work correctly).
-    $form['instance']['widget']['settings']['telephone_validation']['format'] = array(
+    $form['instance']['widget']['settings']['telephone_validation']['valid_format'] = array(
       '#type' => 'select',
-      '#title' => t('Telephone format'),
-      '#default_value' => $settings['format'],
+      '#title' => t('Valid telephone format'),
+      '#default_value' => $settings['valid_format'],
       '#options' => array(
         \libphonenumber\PhoneNumberFormat::E164 => t('E164'),
       ),
@@ -51,11 +51,11 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
 
     // Populate list of countries.
     include_once DRUPAL_ROOT . '/includes/iso.inc';
-    $form['instance']['widget']['settings']['telephone_validation']['available_countries'] = array(
+    $form['instance']['widget']['settings']['telephone_validation']['valid_countries'] = array(
       '#type' => 'select',
-      '#title' => t('Available countries'),
-      '#description' => t('If you wont select any countries - all countries are available'),
-      '#default_value' => $settings['available_countries'],
+      '#title' => t('Valid countries'),
+      '#description' => t('If no country selected - all countries valid'),
+      '#default_value' => $settings['valid_countries'],
       '#multiple' => TRUE,
       '#options' => _country_get_predefined_list(),
     );
