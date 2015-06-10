@@ -22,7 +22,7 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
     }
     $settings = $instance['widget']['settings']['telephone_validation'];
 
-    if (!is_array($form['instance']['widget']['settings'])) {
+    if (!isset($form['instance']['widget']['settings'])) {
       $form['instance']['widget']['settings'] = array();
     }
     $form['instance']['widget']['settings']['telephone_validation'] = array(
