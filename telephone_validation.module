@@ -4,8 +4,8 @@
  * @file
  * Validate phone number.
  *
- * Adds element validator to telephone_default widget to make sure phone has
- * a valid format.
+ * Add element_validation method to telephone_default widget to make sure phone
+ * has valid format.
  */
 
 /**
