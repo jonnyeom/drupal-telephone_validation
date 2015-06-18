@@ -19,13 +19,20 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
   if ($instance['widget']['type'] == 'telephone_default' && !$field['locked']) {
 
     if (!isset($instance['widget']['settings']['telephone_validation'])) {
-      // If that's a brand new instance use default values.
-      $instance['widget']['settings']['telephone_validation'] = array(
-        'valid_format' => \libphonenumber\PhoneNumberFormat::E164,
-        'valid_countries' => array(),
-      );
+      // If that's a brand new instance initialize settings array.
+      $instance['widget']['settings']['telephone_validation'] = array();
     }
     $settings = $instance['widget']['settings']['telephone_validation'];
+    // Ensure we have at least default values.
+    $settings += array(
+      'valid_format' => \libphonenumber\PhoneNumberFormat::E164,
+      'valid_countries' => array(),
+      'store_format' => \libphonenumber\PhoneNumberFormat::E164,
+    );
+
+    if (isset($form_state['values']['instance']['widget']['settings']['telephone_validation'])) {
+      $form_settings = $form_state['values']['instance']['widget']['settings']['telephone_validation'];
+    }
 
     if (!isset($form['instance']['widget']['settings'])) {
       // Initialize settings array.
@@ -43,22 +50,81 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
     $form['instance']['widget']['settings']['telephone_validation']['valid_format'] = array(
       '#type' => 'select',
       '#title' => t('Valid telephone format'),
+      '#description' => t('It is recommended to use E164 validation format. Validator will discover phone number country of origin automatically. If you want to limit field instance to one country only you can change it National format and choose country in next field.'),
       '#default_value' => $settings['valid_format'],
       '#options' => array(
         \libphonenumber\PhoneNumberFormat::E164 => t('E164'),
+        \libphonenumber\PhoneNumberFormat::NATIONAL => t('National'),
+      ),
+      '#ajax' => array(
+        'callback' => '_telephone_validation_valid_countries_ajax_callback',
+        'wrapper' => 'telephone-validation-valid-countries',
+        'method' => 'replace',
       ),
     );
 
-    // Populate list of countries.
-    include_once DRUPAL_ROOT . '/includes/iso.inc';
+    $default_value = isset($form_settings['valid_format']) ? $form_settings['valid_format'] : $settings['valid_format'];
     $form['instance']['widget']['settings']['telephone_validation']['valid_countries'] = array(
       '#type' => 'select',
-      '#title' => t('Valid countries'),
-      '#description' => t('If no country selected - all countries valid'),
+      '#title' => t('List of valid countries'),
+      '#description' => t('If no country selected all countries are valid.'),
       '#default_value' => $settings['valid_countries'],
-      '#multiple' => TRUE,
-      '#options' => _country_get_predefined_list(),
+      '#multiple' => ($default_value == \libphonenumber\PhoneNumberFormat::NATIONAL) ? FALSE : TRUE,
+      '#options' => _telephone_validation_get_country_codes(),
+      '#prefix' => '<div id="telephone-validation-valid-countries">',
+      '#suffix' => '</div>',
     );
+
+    $form['instance']['widget']['settings']['telephone_validation']['store_format'] = array(
+      '#type' => 'select',
+      '#title' => t('Store format'),
+      '#description' => t('It is highly recommended to store data in E164 format. That is international format with no whitespaces preceded by plus and country code. Use other formats only if you know what you are doing.'),
+      '#default_value' => $settings['store_format'],
+      '#options' => array(
+        \libphonenumber\PhoneNumberFormat::E164 => t('E164'),
+        \libphonenumber\PhoneNumberFormat::NATIONAL => t('National'),
+        \libphonenumber\PhoneNumberFormat::INTERNATIONAL => t('International'),
+      ),
+    );
+
+  }
+}
+
+/**
+ * Returns valid countries field on ajax request.
+ */
+function _telephone_validation_valid_countries_ajax_callback($form, $form_state) {
+  return $form['instance']['widget']['settings']['telephone_validation']['valid_countries'];
+}
+
+/**
+ * Implements hook_field_attach_presave().
+ */
+function telephone_validation_field_attach_presave($entity_type, $entity) {
+  $telephone_validation_fields = drupal_static('_telephone_validation_element');
+  if (!is_array($telephone_validation_fields)) {
+    return;
+  }
+  // Initialize PhoneNumberUtils.
+  $phone_utils = \libphonenumber\PhoneNumberUtil::getInstance();
+  foreach ($telephone_validation_fields as $field => $settings) {
+    // Skip if element does not exist in entity anymore (was removed before).
+    if (!isset($entity->{$field})) {
+      continue;
+    }
+    $field = &$entity->{$field};
+    foreach ($field as $l => $language) {
+      foreach ($language as $d => $delta) {
+        try {
+          $default_region = ($settings['valid_format'] == \libphonenumber\PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
+          $number = $phone_utils->parse($field[$l][$d]['value'], $default_region);
+          $field[$l][$d]['value'] = $phone_utils->format($number, $settings['store_format']);
+        }
+        catch (Exception $e) {
+          watchdog_exception('telephone_validation', $e);
+        }
+      }
+    }
   }
 }
 
@@ -75,42 +141,80 @@ function telephone_validation_field_widget_telephone_default_form_alter(&$elemen
 function _telephone_validation_element($element, &$form_state) {
   $value = $element['#value'];
   $instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
-  if (!isset($instance['widget']['settings']['telephone_validation'])) {
-    $instance['widget']['settings']['telephone_validation'] = array();
-  }
-  $settings = $instance['widget']['settings']['telephone_validation'];
 
   // Do validation only if value is not empty.
   if (!empty($value)) {
-    // Since the only correct phone number format is right now E164, it should
-    // start with + and country code.
-    if (stripos($value, '+') !== 0) {
-      form_error($element, t('%name telephone number has to start with plus (+) and country code.', array('%name' => $element['#title'])));
-      return FALSE;
+    // Get settings.
+    if (!isset($instance['widget']['settings']['telephone_validation'])) {
+      $instance['widget']['settings']['telephone_validation'] = array();
     }
-    // If number looks more or less ok, use google libphoonenumber library to
+    $settings = $instance['widget']['settings']['telephone_validation'];
+    // Be sure we have default settings if user didn't submit field settings
+    // form.
+    $settings += array(
+      'valid_format' => \libphonenumber\PhoneNumberFormat::E164,
+      'valid_countries' => array(),
+      'store_format' => \libphonenumber\PhoneNumberFormat::E164,
+    );
+    // If number looks more or less ok, use google libphonenumber library to
     // parse  it.
     $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
     try {
       // If number will be incorrect (there will be no way to parse it) we will
       // get an exception here.
-      $number = $phone_util->parse($value, NULL);
+      $default_region = ($settings['valid_format'] == \libphonenumber\PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
+      $number = $phone_util->parse($value, $default_region);
     }
     catch (Exception $e) {
-      // Log an exception and show form error.
-      watchdog_exception('telephone_validation', $e);
-      form_error($element, t('%name is not a valid telephone number.', array('%name' => $element['#title'])));
+      // If exception - show form error.
+      form_error($element, t('%name is invalid.', array('%name' => $instance['label'])));
       return FALSE;
     }
-    // If number "seems" to be valid - validate it.
+
+    // If can be parsed do validation.
     if (!$phone_util->isValidNumber($number)) {
-      form_error($element, t('%name is not a valid telephone number.', array('%name' => $element['#title'])));
+      form_error($element, t('%name is invalid.', array('%name' => $instance['label'])));
       return FALSE;
     }
-    // If number should come for one of selected countries (per instance).
-    if (!empty($settings['valid_countries']) && (!($country = $phone_util->getRegionCodeForNumber($number)) || !isset($settings['valid_countries'][$country]))) {
-      form_error($element, t('Telephone number country of origin is not supported by %name field.', array('%name' => $element['#title'])));
-      return FALSE;
+
+    // If valid_countries element is not empty and default region can be loaded
+    // do region matching validation.
+    // This condition is always TRUE for national phone number format.
+    if (!empty($settings['valid_countries']) && $default_region = $phone_util->getRegionCodeForNumber($number)) {
+      // If number should belong to one of selected countries.
+      // This condition is always TRUE for national phone number format.
+      if (!isset($settings['valid_countries'][$default_region]) && $settings['valid_countries'] != $default_region) {
+        form_error($element, t('Telephone number country of origin is not supported by %name field.', array('%name' => $instance['label'])));
+        return FALSE;
+      }
+    }
+    // Store information about field with phone validation in static cache
+    // to reuse it in hook_field_attach_presave() (in case phone format should
+    // be changed).
+    $telephone_validation_fields = &drupal_static(__FUNCTION__);
+    if (!is_array($telephone_validation_fields)) {
+      $telephone_validation_fields = array();
+    }
+    $telephone_validation_fields[$element['#field_name']] = $settings;
+  }
+}
+
+/**
+ * Get list of all available countries with codes.
+ *
+ * @return array
+ *   Returns list of all countries from iso.inc file cross referenced with
+ *   available country codes.
+ */
+function _telephone_validation_get_country_codes() {
+  include_once DRUPAL_ROOT . '/includes/iso.inc';
+  $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+  $regions = array();
+  foreach (_country_get_predefined_list() as $region => $name) {
+    $region_meta = $phone_util->getMetadataForRegion($region);
+    if (is_object($region_meta)) {
+      $regions[$region] = $name . ' - +' . $region_meta->getCountryCode() . ' ' . $region_meta->getLeadingDigits();
     }
   }
+  return $regions;
 }
