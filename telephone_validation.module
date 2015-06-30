@@ -98,37 +98,6 @@ function _telephone_validation_valid_countries_ajax_callback($form, $form_state)
 }
 
 /**
- * Implements hook_field_attach_presave().
- */
-function telephone_validation_field_attach_presave($entity_type, $entity) {
-  $telephone_validation_fields = drupal_static('_telephone_validation_element');
-  if (!is_array($telephone_validation_fields)) {
-    return;
-  }
-  // Initialize PhoneNumberUtils.
-  $phone_utils = \libphonenumber\PhoneNumberUtil::getInstance();
-  foreach ($telephone_validation_fields as $field => $settings) {
-    // Skip if element does not exist in entity anymore (was removed before).
-    if (!isset($entity->{$field})) {
-      continue;
-    }
-    $field = &$entity->{$field};
-    foreach ($field as $l => $language) {
-      foreach ($language as $d => $delta) {
-        try {
-          $default_region = ($settings['valid_format'] == \libphonenumber\PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
-          $number = $phone_utils->parse($field[$l][$d]['value'], $default_region);
-          $field[$l][$d]['value'] = $phone_utils->format($number, $settings['store_format']);
-        }
-        catch (Exception $e) {
-          watchdog_exception('telephone_validation', $e);
-        }
-      }
-    }
-  }
-}
-
-/**
  * Implements hook_field_widget_WIDGET_TYPE_form_alter().
  */
 function telephone_validation_field_widget_telephone_default_form_alter(&$element, &$form_state, $context) {
@@ -188,14 +157,8 @@ function _telephone_validation_element($element, &$form_state) {
         return FALSE;
       }
     }
-    // Store information about field with phone validation in static cache
-    // to reuse it in hook_field_attach_presave() (in case phone format should
-    // be changed).
-    $telephone_validation_fields = &drupal_static(__FUNCTION__);
-    if (!is_array($telephone_validation_fields)) {
-      $telephone_validation_fields = array();
-    }
-    $telephone_validation_fields[$element['#field_name']] = $settings;
+    // Change field value and store it in database in unified format.
+    form_set_value($element, $phone_util->format($number, $settings['store_format']), $form_state);
   }
 }
 
