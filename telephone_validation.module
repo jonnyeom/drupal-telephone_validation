@@ -124,8 +124,8 @@ function telephone_validation_element($element, &$form_state) {
       return FALSE;
     }
 
-    // If number looks more or less ok, use google libphonenumber library to
-    // parse  it.
+    // If number looks ok, use google libphonenumber library to set correct
+    // output format.
     $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
 
     // Change field value and store it in database in unified format.
@@ -200,16 +200,50 @@ function telephone_validation_field_info_alter(&$field_info) {
  */
 function telephone_validation_metadata_field_telephone_property_callback(&$info, $entity_type, $field, $instance, $field_type) {
   $property = &$info[$entity_type]['bundles'][$instance['bundle']]['properties'][$field['field_name']];
-  $property['validation callback'] = '_telephone_validation_metadata_validation';
+  $property['validation callback'] = '_telephone_validation_metadata_field_property_validation';
+  $property['setter callback'] = '_telephone_validation_metadata_field_property_set';
+}
+
+/**
+ * Callback for setting field property values.
+ *
+ * @see entity_metadata_field_property_set().
+ */
+function _telephone_validation_metadata_field_property_set($entity, $name, $value, $langcode, $entity_type, $info) {
+  $field = field_info_field($name);
+  $columns = array_keys($field['columns']);
+  $langcode = entity_metadata_field_get_language($entity_type, $entity, $field, $langcode);
+  $values = $field['cardinality'] == 1 ? array($value) : (array) $value;
+  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
+  $instance = field_info_instance($entity_type, $name, $bundle);
+  $settings = _telephone_validation_get_instance_settings($instance);
+
+  // If number looks ok, use google libphonenumber library to set correct
+  // output format.
+  $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+
+  $items = array();
+  foreach ($values as $delta => $value) {
+    if (isset($value)) {
+      $default_region = ($settings['valid_format'] == \libphonenumber\PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
+      $number = $phone_util->parse($value, $default_region);
+      $items[$delta][$columns[0]] = $phone_util->format($number, $settings['store_format']);
+    }
+  }
+  $entity->{$name}[$langcode] = $items;
+
+  // Empty the static field language cache, so the field system picks up any
+  // possible new languages.
+  drupal_static_reset('field_language');
 }
 
 /**
  * Validation callback wrapper to set only valid data values.
  */
-function _telephone_validation_metadata_validation($items, $context) {
+function _telephone_validation_metadata_field_property_validation($items, $context) {
 
   // Normalize incoming data.
-  $items = is_array($items) ? $items : (array) $items;
+  $items = is_array($items) ? $items : array($items);
 
   // Get parent entity info.
   $entity_info = $context['parent']->info();
