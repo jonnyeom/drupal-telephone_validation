@@ -101,65 +101,65 @@ function _telephone_validation_valid_countries_ajax_callback($form, $form_state)
  * Implements hook_field_widget_WIDGET_TYPE_form_alter().
  */
 function telephone_validation_field_widget_telephone_default_form_alter(&$element, &$form_state, $context) {
-  $element['value']['#element_validate'] = array('_telephone_validation_element');
+  $element['value']['#element_validate'] = array('telephone_validation_element');
 }
 
 /**
  * Telephone element validation.
  */
-function _telephone_validation_element($element, &$form_state) {
+function telephone_validation_element($element, &$form_state) {
   $value = $element['#value'];
-  $instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
 
   // Do validation only if value is not empty.
   if (!empty($value)) {
-    // Get settings.
-    if (!isset($instance['widget']['settings']['telephone_validation'])) {
-      $instance['widget']['settings']['telephone_validation'] = array();
+    $instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
+
+    $settings = _telephone_validation_get_instance_settings($instance);
+
+    try {
+      $number = _telephone_validation($value, $settings);
     }
-    $settings = $instance['widget']['settings']['telephone_validation'];
-    // Be sure we have default settings if user didn't submit field settings
-    // form.
-    $settings += array(
-      'valid_format' => \libphonenumber\PhoneNumberFormat::E164,
-      'valid_countries' => array(),
-      'store_format' => \libphonenumber\PhoneNumberFormat::E164,
-    );
+    catch (Exception $e) {
+      form_error($element, t('%name value is invalid.', array('%name' => $instance['label'])));
+      return FALSE;
+    }
+
     // If number looks more or less ok, use google libphonenumber library to
     // parse  it.
     $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
-    try {
-      // If number will be incorrect (there will be no way to parse it) we will
-      // get an exception here.
-      $default_region = ($settings['valid_format'] == \libphonenumber\PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
-      $number = $phone_util->parse($value, $default_region);
-    }
-    catch (Exception $e) {
-      // If exception - show form error.
-      form_error($element, t('%name is invalid.', array('%name' => $instance['label'])));
-      return FALSE;
-    }
 
-    // If can be parsed do validation.
-    if (!$phone_util->isValidNumber($number)) {
-      form_error($element, t('%name is invalid.', array('%name' => $instance['label'])));
-      return FALSE;
-    }
-
-    // If valid_countries element is not empty and default region can be loaded
-    // do region matching validation.
-    // This condition is always TRUE for national phone number format.
-    if (!empty($settings['valid_countries']) && $default_region = $phone_util->getRegionCodeForNumber($number)) {
-      // If number should belong to one of selected countries.
-      // This condition is always TRUE for national phone number format.
-      if (!isset($settings['valid_countries'][$default_region]) && $settings['valid_countries'] != $default_region) {
-        form_error($element, t('Telephone number country of origin is not supported by %name field.', array('%name' => $instance['label'])));
-        return FALSE;
-      }
-    }
     // Change field value and store it in database in unified format.
     form_set_value($element, $phone_util->format($number, $settings['store_format']), $form_state);
   }
+}
+
+/**
+ * Get default values for telephone field.
+ *
+ * @return array
+ *   Returns array of default field settings.
+ */
+function _telephone_validation_get_default_settings() {
+  return array(
+    'valid_format' => \libphonenumber\PhoneNumberFormat::E164,
+    'valid_countries' => array(),
+    'store_format' => \libphonenumber\PhoneNumberFormat::E164,
+  );
+}
+
+/**
+ * Returns settings array for given instance.
+ *
+ * @param array $instance
+ *   Field instance.
+ *
+ * @return array
+ *   Array of settings. Default ones if it is not set.
+ */
+function _telephone_validation_get_instance_settings($instance = array()) {
+  $settings = isset($instance['widget']['settings']['telephone_validation']) ? $instance['widget']['settings']['telephone_validation'] : array();
+  $settings += _telephone_validation_get_default_settings();
+  return $settings;
 }
 
 /**
@@ -180,4 +180,99 @@ function _telephone_validation_get_country_codes() {
     }
   }
   return $regions;
+}
+
+/**
+ * Implements hook_field_info_alter().
+ *
+ * Defines default property types for telephone field type.
+ */
+function telephone_validation_field_info_alter(&$field_info) {
+  $field_info['telephone']['property_callbacks'][] = 'telephone_validation_metadata_field_telephone_property_callback';
+}
+
+/**
+ * Additional callback to adapt the property info for telephone fields.
+ *
+ * @see entity_metadata_field_entity_property_info()
+ * @see entity_field_info_alter()
+ * @see entity_property_text_formatted_info()
+ */
+function telephone_validation_metadata_field_telephone_property_callback(&$info, $entity_type, $field, $instance, $field_type) {
+  $property = &$info[$entity_type]['bundles'][$instance['bundle']]['properties'][$field['field_name']];
+  $property['validation callback'] = '_telephone_validation_metadata_validation';
+}
+
+/**
+ * Validation callback wrapper to set only valid data values.
+ */
+function _telephone_validation_metadata_validation($items, $context) {
+
+  // Normalize incoming data.
+  $items = is_array($items) ? $items : (array) $items;
+
+  // Get parent entity info.
+  $entity_info = $context['parent']->info();
+  $entity_type = $entity_info['type'];
+
+  // Get field instance.
+  $instance = field_info_instance($entity_type, $context['name'], $context['parent']->getBundle());
+
+  // Load widget settings.
+  $settings = _telephone_validation_get_instance_settings($instance);
+
+  foreach ($items as $value) {
+    // Perform telephone validation on every value.
+    _telephone_validation($value, $settings);
+  }
+
+  // Return TRUE if everything seems to be ok.
+  return TRUE;
+}
+
+/**
+ * Validation callback.
+ *
+ * @param string $value
+ *   Raw field value.
+ * @param array $settings
+ *   Array of field settings.
+ *
+ * @return \libphonenumber\PhoneNumber
+ *   Returns phone number object if number is valid.
+ *
+ * @throws \Exception
+ *   Throws exception if number is invalid.
+ */
+function _telephone_validation($value, $settings = array()) {
+  // Be sure we have default settings if user didn't submit field settings
+  // form yet.
+  $settings += _telephone_validation_get_default_settings();
+
+  // If number looks more or less ok, use google libphonenumber library to
+  // parse  it.
+  $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+
+  // If number will be incorrect (there will be no way to parse it) we will
+  // get an exception here.
+  $default_region = ($settings['valid_format'] == \libphonenumber\PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
+  $number = $phone_util->parse($value, $default_region);
+
+  // If can be parsed do validation.
+  if (!$phone_util->isValidNumber($number)) {
+    throw new Exception('Field value is invalid.');
+  }
+
+  // If valid_countries element is not empty and default region can be loaded
+  // do region matching validation.
+  // This condition is always TRUE for national phone number format.
+  if (!empty($settings['valid_countries']) && $default_region = $phone_util->getRegionCodeForNumber($number)) {
+    // If number should belong to one of selected countries.
+    // This condition is always TRUE for national phone number format.
+    if (!isset($settings['valid_countries'][$default_region]) && $settings['valid_countries'] != $default_region) {
+      throw new Exception('Field does not support phone number from your country.');
+    }
+  }
+
+  return $number;
 }
