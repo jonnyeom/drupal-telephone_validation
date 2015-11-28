@@ -8,10 +8,28 @@
  * has valid format.
  */
 
+use libphonenumber\PhoneNumberFormat;
+use libphonenumber\PhoneNumberUtil;
+use Drupal\Core\Form\FormStateInterface;
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function telephone_validation_element_info_alter(array &$types) {
+  if (!isset($types['tel']['#element_validate'])) {
+    $types['tel']['#element_validate'] = [];
+  }
+  $types['tel']['#element_validate'][] = [
+    'Drupal\telephone_validation\Render\Element\TelephoneValidation', 'validateTel',
+  ];
+  $types['tel']['#validation_format'] = PhoneNumberFormat::E164;
+  $types['tel']['#validation_countries'] = [];
+}
+
 /**
  * Implements hook_form_FORM_ID_alter().
  */
-function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form_state) {
+function telephone_validation_form_field_config_edit_form_alter(&$form, FormStateInterface &$form_state) {
   // Get field and instance.
   $field = $form['#field'];
   $instance = $form['#instance'];
@@ -25,9 +43,9 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
     $settings = $instance['widget']['settings']['telephone_validation'];
     // Ensure we have at least default values.
     $settings += array(
-      'valid_format' => \libphonenumber\PhoneNumberFormat::E164,
+      'valid_format' => PhoneNumberFormat::E164,
       'valid_countries' => array(),
-      'store_format' => \libphonenumber\PhoneNumberFormat::E164,
+      'store_format' => PhoneNumberFormat::E164,
     );
 
     if (isset($form_state['values']['instance']['widget']['settings']['telephone_validation'])) {
@@ -53,8 +71,8 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
       '#description' => t('It is recommended to use E164 validation format. Validator will discover phone number country of origin automatically. If you want to limit field instance to one country only you can change it National format and choose country in next field.'),
       '#default_value' => $settings['valid_format'],
       '#options' => array(
-        \libphonenumber\PhoneNumberFormat::E164 => t('E164'),
-        \libphonenumber\PhoneNumberFormat::NATIONAL => t('National'),
+        PhoneNumberFormat::E164 => t('E164'),
+        PhoneNumberFormat::NATIONAL => t('National'),
       ),
       '#ajax' => array(
         'callback' => '_telephone_validation_valid_countries_ajax_callback',
@@ -69,7 +87,7 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
       '#title' => t('List of valid countries'),
       '#description' => t('If no country selected all countries are valid.'),
       '#default_value' => $settings['valid_countries'],
-      '#multiple' => ($default_value == \libphonenumber\PhoneNumberFormat::NATIONAL) ? FALSE : TRUE,
+      '#multiple' => ($default_value == PhoneNumberFormat::NATIONAL) ? FALSE : TRUE,
       '#options' => _telephone_validation_get_country_codes(),
       '#prefix' => '<div id="telephone-validation-valid-countries">',
       '#suffix' => '</div>',
@@ -81,9 +99,9 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
       '#description' => t('It is highly recommended to store data in E164 format. That is international format with no whitespaces preceded by plus and country code. Use other formats only if you know what you are doing.'),
       '#default_value' => $settings['store_format'],
       '#options' => array(
-        \libphonenumber\PhoneNumberFormat::E164 => t('E164'),
-        \libphonenumber\PhoneNumberFormat::NATIONAL => t('National'),
-        \libphonenumber\PhoneNumberFormat::INTERNATIONAL => t('International'),
+        PhoneNumberFormat::E164 => t('E164'),
+        PhoneNumberFormat::NATIONAL => t('National'),
+        PhoneNumberFormat::INTERNATIONAL => t('International'),
       ),
     );
 
@@ -93,23 +111,15 @@ function telephone_validation_form_field_ui_field_edit_form_alter(&$form, &$form
 /**
  * Returns valid countries field on ajax request.
  */
-function _telephone_validation_valid_countries_ajax_callback($form, $form_state) {
+function _telephone_validation_valid_countries_ajax_callback($form, FormStateInterface $form_state) {
   return $form['instance']['widget']['settings']['telephone_validation']['valid_countries'];
-}
-
-/**
- * Implements hook_field_widget_WIDGET_TYPE_form_alter().
- */
-function telephone_validation_field_widget_telephone_default_form_alter(&$element, &$form_state, $context) {
-  $element['value']['#element_validate'] = array('telephone_validation_element');
 }
 
 /**
  * Telephone element validation.
  */
-function telephone_validation_element($element, &$form_state) {
+function telephone_validation_element(&$element, FormStateInterface $form_state, &$complete_form) {
   $value = $element['#value'];
-
   // Do validation only if value is not empty.
   if (!empty($value)) {
     $instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
@@ -126,10 +136,10 @@ function telephone_validation_element($element, &$form_state) {
 
     // If number looks ok, use google libphonenumber library to set correct
     // output format.
-    $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+    $phone_util = PhoneNumberUtil::getInstance();
 
     // Change field value and store it in database in unified format.
-    form_set_value($element, $phone_util->format($number, $settings['store_format']), $form_state);
+    $form_state->setValueForElement($element, $phone_util->format($number, $settings['store_format']));
   }
 }
 
@@ -141,9 +151,9 @@ function telephone_validation_element($element, &$form_state) {
  */
 function _telephone_validation_get_default_settings() {
   return array(
-    'valid_format' => \libphonenumber\PhoneNumberFormat::E164,
+    'valid_format' => PhoneNumberFormat::E164,
     'valid_countries' => array(),
-    'store_format' => \libphonenumber\PhoneNumberFormat::E164,
+    'store_format' => PhoneNumberFormat::E164,
   );
 }
 
@@ -170,8 +180,8 @@ function _telephone_validation_get_instance_settings($instance = array()) {
  *   available country codes.
  */
 function _telephone_validation_get_country_codes() {
-  include_once DRUPAL_ROOT . '/includes/iso.inc';
-  $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+  include_once \Drupal::root() . '/includes/iso.inc';
+  $phone_util = PhoneNumberUtil::getInstance();
   $regions = array();
   foreach (_country_get_predefined_list() as $region => $name) {
     $region_meta = $phone_util->getMetadataForRegion($region);
@@ -220,12 +230,12 @@ function _telephone_validation_metadata_field_property_set($entity, $name, $valu
 
   // If number looks ok, use google libphonenumber library to set correct
   // output format.
-  $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+  $phone_util = PhoneNumberUtil::getInstance();
 
   $items = array();
   foreach ($values as $delta => $value) {
     if (isset($value)) {
-      $default_region = ($settings['valid_format'] == \libphonenumber\PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
+      $default_region = ($settings['valid_format'] == PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
       $number = $phone_util->parse($value, $default_region);
       $items[$delta][$columns[0]] = $phone_util->format($number, $settings['store_format']);
     }
@@ -285,11 +295,11 @@ function _telephone_validation($value, $settings = array()) {
 
   // If number looks more or less ok, use google libphonenumber library to
   // parse  it.
-  $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+  $phone_util = PhoneNumberUtil::getInstance();
 
   // If number will be incorrect (there will be no way to parse it) we will
   // get an exception here.
-  $default_region = ($settings['valid_format'] == \libphonenumber\PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
+  $default_region = ($settings['valid_format'] == PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
   $number = $phone_util->parse($value, $default_region);
 
   // If can be parsed do validation.

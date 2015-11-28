@@ -1,5 +1,5 @@
 name: 'Telephone Validation'
-description: 'Use Google\'s phone number handling library to validate Telephone field.'
+description: 'Use phone number handling library to validate Telephone field.'
 core: 8.x
 dependencies:
   - telephone
