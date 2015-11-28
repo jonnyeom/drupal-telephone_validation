@@ -9,7 +9,6 @@ Module can discover where phone number comes from and if it's valid or not.
 # Dependencies
 
 - telephone
-- composer_manager
 - field_ui
 
 # Instalation

@@ -3,23 +3,11 @@
   "type": "drupal-module",
   "description": "Use 3rd party library to validate telephone field.",
   "homepage": "http://drupal.org/project/telephone_validation",
-  "license": "GPL-2.0",
-  "authors": [
-    {
-      "name": "Jakub Piasecki",
-      "email": "jakub@piaseccy.pl",
-      "role": "Project Lead"
-    }
-  ],
+  "license": "GPL-2.0+",
   "support": {
     "issues": "http://drupal.org/project/issues/telephone_validation"
   },
   "require": {
     "giggsey/libphonenumber-for-php": "~7.0"
-  },
-  "autoload": {
-    "psr-0": {
-      "Drupal\\libphonenumber": "src/"
-    }
   }
 }

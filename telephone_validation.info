@@ -1,7 +1,0 @@
-name = Telephone Validation
-description = Use Google'sphone number handling library to validate Telephone field.
-core = 7.x
-
-dependencies[] = telephone
-dependencies[] = composer_manager
-dependencies[] = field_ui
