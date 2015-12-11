@@ -1,0 +1,3 @@
+services:
+  tel.validator:
+    class: Drupal\telephone_validation\TelephoneValidation
