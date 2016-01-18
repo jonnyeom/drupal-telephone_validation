@@ -27,6 +27,7 @@ function telephone_validation_element_info_alter(array &$types) {
   $types['tel']['#element_validate_settings'] = [
     'valid_format' => $config->get('valid_format'),
     'valid_countries'=> $config->get('valid_countries'),
+    'store_format' => $config->get('store_format'),
   ];
 }
 

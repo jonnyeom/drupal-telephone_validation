@@ -67,6 +67,26 @@ class TelephoneValidation {
   }
 
   /**
+   * Changes number to format.
+   *
+   * @param string $number
+   *   Telephone number.
+   * @param array $settings
+   *   Settings array.
+   *
+   * @return string
+   *   Phone number in new format.
+   */
+  public function storeFormat($number, array $settings) {
+    // Get default country.
+    $default_region = ($settings['valid_format'] === PhoneNumberFormat::NATIONAL) ? reset($settings['valid_countries']) : NULL;
+    // Parse object.
+    $number_object = $this->phone_utils->parse($number, $default_region);
+    // Change phone number format to $settings['store_format'].
+    return $this->phone_utils->format($number_object, $settings['store_format']);
+  }
+
+  /**
    * Get list of countries with country code and leading digits.
    *
    * @return array
