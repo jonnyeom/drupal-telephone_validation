@@ -45,8 +45,8 @@ class TelephoneValidation extends Tel {
     $form_state->setValueForElement($element, $value);
 
     $settings = [
-      'valid_format' => isset($element['#element_validate_settings']['validate_format']) ? $element['#element_validate_settings']['validate_format'] : $config->get('valid_format'),
-      'valid_countries' => isset($element['#element_validate_settings']['validate_countries']) ? $element['#element_validate_settings']['validate_countries'] : $config->get('valid_countries'),
+      'valid_format' => isset($element['#element_validate_settings']['valid_format']) ? $element['#element_validate_settings']['valid_format'] : $config->get('valid_format'),
+      'valid_countries' => isset($element['#element_validate_settings']['valid_countries']) ? $element['#element_validate_settings']['valid_countries'] : $config->get('valid_countries'),
     ];
 
     if ($value !== '' && !$service->isValid($value, $settings)) {
