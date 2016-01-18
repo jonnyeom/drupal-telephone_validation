@@ -22,8 +22,12 @@ function telephone_validation_element_info_alter(array &$types) {
   $types['tel']['#element_validate'][] = [
     'Drupal\telephone_validation\Render\Element\TelephoneValidation', 'validateTel',
   ];
-  $types['tel']['#validation_format'] = PhoneNumberFormat::E164;
-  $types['tel']['#validation_countries'] = [];
+
+  $config = \Drupal::config('telephone_validation.settings');
+  $types['tel']['#element_validate_settings'] = [
+    'valid_format' => $config->get('valid_format'),
+    'valid_countries'=> $config->get('valid_countries'),
+  ];
 }
 
 /**

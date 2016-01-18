@@ -18,8 +18,10 @@ use Drupal\Core\Form\FormStateInterface;
  * $form['phone'] = array(
  *   '#type' => 'tel',
  *   '#title' => t('Phone'),
- *   '#validation_format' => PhoneNumberFormat::E164,
- *   '#validation_countries' => [],
+ *   '#element_validate_settings' => [
+ *     'valid_format' => PhoneNumberFormat::E164,
+ *     'valid_countries' => [],
+ *   ],
  * );
  * @endcode
  *
@@ -35,16 +37,22 @@ class TelephoneValidation extends Tel {
    * Note that #maxlength and #required is validated by _form_validate() already.
    */
   public static function validateTel(&$element, FormStateInterface $form_state, &$complete_form) {
+
+    $service = \Drupal::service('tel.validator');
+    $config = \Drupal::config('telephone_validation.settings');
+
     $value = trim($element['#value']);
     $form_state->setValueForElement($element, $value);
+
     $settings = [
-      '#validation_format' => $element['#validation_format'],
-      '#validation_countries' => $element['#validation_countries'],
+      'valid_format' => isset($element['#element_validate_settings']['validate_format']) ? $element['#element_validate_settings']['validate_format'] : $config->get('valid_format'),
+      'valid_countries' => isset($element['#element_validate_settings']['validate_countries']) ? $element['#element_validate_settings']['validate_countries'] : $config->get('valid_countries'),
     ];
 
-    if ($value !== '' && !\Drupal::service('tel.validator')->isValid($value, $settings)) {
+    if ($value !== '' && !$service->isValid($value, $settings)) {
       $form_state->setError($element, t('The phone number %phone is not valid.', array('%phone' => $value)));
     }
+
   }
 
 }

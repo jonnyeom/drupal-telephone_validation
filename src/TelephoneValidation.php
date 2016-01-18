@@ -40,7 +40,7 @@ class TelephoneValidation {
 
     try {
       // Get default country.
-      $default_region = ($settings['#validation_format'] === PhoneNumberFormat::NATIONAL) ? reset($settings['#validation_countries']) : NULL;
+      $default_region = ($settings['valid_format'] === PhoneNumberFormat::NATIONAL) ? reset($settings['valid_countries']) : NULL;
       // Parse object.
       $number_object = $this->phone_utils->parse($number, $default_region);
     }
@@ -55,10 +55,10 @@ class TelephoneValidation {
     // If #validation_countries is not empty and default region can be loaded
     // do region matching validation.
     // This condition is always TRUE for national phone number format.
-    if (!empty($settings['#validation_countries']) && $default_region = $this->phone_utils->getRegionCodeForNumber($number)) {
+    if (!empty($settings['valid_countries']) && $default_region = $this->phone_utils->getRegionCodeForNumber($number)) {
       // If number should belong to one of selected countries.
       // This condition is always TRUE for national phone number format.
-      if (!isset($settings['#validation_countries'][$default_region])) {
+      if (!isset($settings['valid_countries'][$default_region])) {
         return FALSE;
       }
     }
