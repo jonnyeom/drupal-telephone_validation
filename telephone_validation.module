@@ -33,6 +33,8 @@ function telephone_validation_element_info_alter(array &$types) {
 
 /**
  * Implements hook_form_FORM_ID_alter().
+ *
+ * @todo Refactor.
  */
 function telephone_validation_form_field_config_edit_form_alter(&$form, FormStateInterface &$form_state) {
   // Get field and instance.
@@ -115,6 +117,8 @@ function telephone_validation_form_field_config_edit_form_alter(&$form, FormStat
 
 /**
  * Returns valid countries field on ajax request.
+ *
+ * @todo Refactor.
  */
 function _telephone_validation_valid_countries_ajax_callback($form, FormStateInterface $form_state) {
   return $form['instance']['widget']['settings']['telephone_validation']['valid_countries'];
@@ -122,6 +126,8 @@ function _telephone_validation_valid_countries_ajax_callback($form, FormStateInt
 
 /**
  * Telephone element validation.
+ *
+ * @todo Remove.
  */
 function telephone_validation_element(&$element, FormStateInterface $form_state, &$complete_form) {
   $value = $element['#value'];
@@ -153,6 +159,8 @@ function telephone_validation_element(&$element, FormStateInterface $form_state,
  *
  * @return array
  *   Returns array of default field settings.
+ *
+ * @todo Remove.
  */
 function _telephone_validation_get_default_settings() {
   return array(
@@ -170,6 +178,8 @@ function _telephone_validation_get_default_settings() {
  *
  * @return array
  *   Array of settings. Default ones if it is not set.
+ *
+ * @todo Remove?
  */
 function _telephone_validation_get_instance_settings($instance = array()) {
   $settings = isset($instance['widget']['settings']['telephone_validation']) ? $instance['widget']['settings']['telephone_validation'] : array();
@@ -183,6 +193,11 @@ function _telephone_validation_get_instance_settings($instance = array()) {
  * @return array
  *   Returns list of all countries from iso.inc file cross referenced with
  *   available country codes.
+ *
+ * @deprecated
+ *   This is part of service now.
+ *
+ * @todo Remove.
  */
 function _telephone_validation_get_country_codes() {
   include_once \Drupal::root() . '/includes/iso.inc';
@@ -201,6 +216,8 @@ function _telephone_validation_get_country_codes() {
  * Implements hook_field_info_alter().
  *
  * Defines default property types for telephone field type.
+ *
+ * @todo This is D7 code, evaluate and remove?
  */
 function telephone_validation_field_info_alter(&$field_info) {
   $field_info['telephone']['property_callbacks'][] = 'telephone_validation_metadata_field_telephone_property_callback';
@@ -212,6 +229,8 @@ function telephone_validation_field_info_alter(&$field_info) {
  * @see entity_metadata_field_entity_property_info()
  * @see entity_field_info_alter()
  * @see entity_property_text_formatted_info()
+ *
+ * @todo This is D7 code, evaluate and remove?
  */
 function telephone_validation_metadata_field_telephone_property_callback(&$info, $entity_type, $field, $instance, $field_type) {
   $property = &$info[$entity_type]['bundles'][$instance['bundle']]['properties'][$field['field_name']];
@@ -223,6 +242,8 @@ function telephone_validation_metadata_field_telephone_property_callback(&$info,
  * Callback for setting field property values.
  *
  * @see entity_metadata_field_property_set().
+ *
+ * @todo This is D7 code, evaluate and remove?
  */
 function _telephone_validation_metadata_field_property_set($entity, $name, $value, $langcode, $entity_type, $info) {
   $field = field_info_field($name);
@@ -254,6 +275,8 @@ function _telephone_validation_metadata_field_property_set($entity, $name, $valu
 
 /**
  * Validation callback wrapper to set only valid data values.
+ *
+ * @todo This is D7 code, evaluate and remove?
  */
 function _telephone_validation_metadata_field_property_validation($items, $context) {
 
@@ -292,6 +315,11 @@ function _telephone_validation_metadata_field_property_validation($items, $conte
  *
  * @throws \Exception
  *   Throws exception if number is invalid.
+ *
+ * @deprecated
+ *   Use tel.validator service.
+ *
+ * @todo Remove.
  */
 function _telephone_validation($value, $settings = array()) {
   // Be sure we have default settings if user didn't submit field settings

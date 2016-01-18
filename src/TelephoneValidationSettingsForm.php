@@ -46,6 +46,7 @@ class TelephoneValidationSettingsForm extends ConfigFormBase {
       ],
     );
 
+    // @todo: Change field based on telephone_validation_valid_format value.
     $form['telephone_validation_valid_countries'] = array(
       '#type' => 'select',
       '#title' => $this->t('Valid countries'),

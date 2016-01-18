@@ -5,3 +5,4 @@ dependencies:
   - telephone
   - field_ui
 type: module
+configure: telephone_validation.admin_settings

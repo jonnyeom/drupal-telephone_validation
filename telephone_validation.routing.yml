@@ -1,7 +1,8 @@
-telephone_validation.settings:
+telephone_validation.admin_settings:
   path: '/admin/config/content/telephone_validation'
   defaults:
     _form: '\Drupal\telephone_validation\TelephoneValidationSettingsForm'
-    _title: 'Telephone Validation global settings'
+    _title: 'Telephone Validation'
+    _description: 'Global settings'
   requirements:
     _permission: 'administer site configuration'
