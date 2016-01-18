@@ -11,11 +11,32 @@ use libphonenumber\PhoneNumberFormat;
 
 class TelephoneValidation {
 
+  /**
+   * @var \libphonenumber\PhoneNumberUtil
+   */
+  public $phone_utils;
+
+  /**
+   * TelephoneValidation constructor.
+   *
+   * Initialize PhoneNumberUtil.
+   */
   public function __construct() {
     $this->phone_utils = PhoneNumberUtil::getInstance();
   }
 
-  public function isValid($number, $settings) {
+  /**
+   * Check if number is valid for given settings.
+   *
+   * @param $number
+   *   Phone number.
+   * @param array $settings
+   *   Settings array.
+   *
+   * @return bool
+   *   Valid or not.
+   */
+  public function isValid($number, array $settings) {
 
     try {
       // Get default country.
@@ -43,6 +64,24 @@ class TelephoneValidation {
     }
 
     return TRUE;
+  }
+
+  /**
+   * Get list of countries with country code and leading digits.
+   *
+   * @return array
+   *   Flatten array you can use directly in select lists.
+   */
+  public function getCountryList() {
+    $phone_util = PhoneNumberUtil::getInstance();
+    $regions = array();
+    foreach (\Drupal::service('country_manager')->getList() as $region => $name) {
+      $region_meta = $phone_util->getMetadataForRegion($region);
+      if (is_object($region_meta)) {
+        $regions[$region] = $name . ' - +' . $region_meta->getCountryCode() . ' ' . $region_meta->getLeadingDigits();
+      }
+    }
+    return $regions;
   }
 
 }

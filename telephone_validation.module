@@ -152,7 +152,7 @@ function telephone_validation_element(&$element, FormStateInterface $form_state,
 function _telephone_validation_get_default_settings() {
   return array(
     'valid_format' => PhoneNumberFormat::E164,
-    'valid_countries' => array(),
+    'valid_countries' => [],
     'store_format' => PhoneNumberFormat::E164,
   );
 }
