@@ -55,7 +55,7 @@ class TelephoneValidation {
     // If #validation_countries is not empty and default region can be loaded
     // do region matching validation.
     // This condition is always TRUE for national phone number format.
-    if (!empty($settings['valid_countries']) && $default_region = $this->phone_utils->getRegionCodeForNumber($number)) {
+    if (!empty($settings['valid_countries']) && $default_region = $this->phone_utils->getRegionCodeForNumber($number_object)) {
       // If number should belong to one of selected countries.
       // This condition is always TRUE for national phone number format.
       if (!isset($settings['valid_countries'][$default_region])) {
