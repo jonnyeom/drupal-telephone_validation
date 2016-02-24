@@ -53,7 +53,7 @@ class TelephoneValidation extends Tel {
     if ($value !== '' && !$service->isValid($value, $settings)) {
       $form_state->setError($element, t('The phone number %phone is not valid.', array('%phone' => $value)));
     }
-    else {
+    elseif ($value !== '') {
       // If valid - set correct format.
       $form_state->setValueForElement($element, $service->storeFormat($value, $settings));
     }

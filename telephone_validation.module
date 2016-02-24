@@ -9,19 +9,18 @@
  */
 
 use libphonenumber\PhoneNumberFormat;
-use libphonenumber\PhoneNumberUtil;
 use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Implements hook_element_info_alter().
  */
 function telephone_validation_element_info_alter(array &$types) {
-  if (!isset($types['tel']['#element_validate'])) {
-    $types['tel']['#element_validate'] = [];
-  }
-  $types['tel']['#element_validate'][] = [
-    'Drupal\telephone_validation\Render\Element\TelephoneValidation', 'validateTel',
-  ];
+  //  if (!isset($types['tel']['#element_validate'])) {
+  //    $types['tel']['#element_validate'] = [];
+  //  }
+  //  $types['tel']['#element_validate'][] = [
+  //    'Drupal\telephone_validation\Render\Element\TelephoneValidation', 'validateTel',
+  //  ];
 
   $config = \Drupal::config('telephone_validation.settings');
   $types['tel']['#element_validate_settings'] = [
@@ -29,6 +28,28 @@ function telephone_validation_element_info_alter(array &$types) {
     'valid_countries'=> $config->get('valid_countries'),
     'store_format' => $config->get('store_format'),
   ];
+}
+
+/**
+ * Implements hook_field_info_alter().
+ *
+ * Add constraint to telephone field.
+ */
+function telephone_validation_field_info_alter(&$info) {
+  $info['telephone']['constraints']['Telephone'] = array();
+}
+
+
+/**
+ * Implements hook_field_widget_third_party_settings_form().
+ */
+function telephone_validation_field_widget_third_party_settings_form(\Drupal\Core\Field\WidgetInterface $plugin, \Drupal\Core\Field\FieldDefinitionInterface $field_definition, $form_mode, $form, \Drupal\Core\Form\FormStateInterface $form_state) {
+  $element['field_test_widget_third_party_settings_form'] = array(
+    '#type' => 'textfield',
+    '#title' => t('3rd party widget settings form'),
+    '#default_value' => $plugin->getThirdPartySetting('field_third_party_test', 'field_test_widget_third_party_settings_form'),
+  );
+  return $element;
 }
 
 /**
@@ -122,234 +143,4 @@ function telephone_validation_form_field_config_edit_form_alter(&$form, FormStat
  */
 function _telephone_validation_valid_countries_ajax_callback($form, FormStateInterface $form_state) {
   return $form['instance']['widget']['settings']['telephone_validation']['valid_countries'];
-}
-
-/**
- * Telephone element validation.
- *
- * @todo Remove.
- */
-function telephone_validation_element(&$element, FormStateInterface $form_state, &$complete_form) {
-  $value = $element['#value'];
-  // Do validation only if value is not empty.
-  if (!empty($value)) {
-    $instance = field_info_instance($element['#entity_type'], $element['#field_name'], $element['#bundle']);
-
-    $settings = _telephone_validation_get_instance_settings($instance);
-
-    try {
-      $number = _telephone_validation($value, $settings);
-    }
-    catch (Exception $e) {
-      form_error($element, t('%name value is invalid.', array('%name' => $instance['label'])));
-      return FALSE;
-    }
-
-    // If number looks ok, use google libphonenumber library to set correct
-    // output format.
-    $phone_util = PhoneNumberUtil::getInstance();
-
-    // Change field value and store it in database in unified format.
-    $form_state->setValueForElement($element, $phone_util->format($number, $settings['store_format']));
-  }
-}
-
-/**
- * Get default values for telephone field.
- *
- * @return array
- *   Returns array of default field settings.
- *
- * @todo Remove.
- */
-function _telephone_validation_get_default_settings() {
-  return array(
-    'valid_format' => PhoneNumberFormat::E164,
-    'valid_countries' => [],
-    'store_format' => PhoneNumberFormat::E164,
-  );
-}
-
-/**
- * Returns settings array for given instance.
- *
- * @param array $instance
- *   Field instance.
- *
- * @return array
- *   Array of settings. Default ones if it is not set.
- *
- * @todo Remove?
- */
-function _telephone_validation_get_instance_settings($instance = array()) {
-  $settings = isset($instance['widget']['settings']['telephone_validation']) ? $instance['widget']['settings']['telephone_validation'] : array();
-  $settings += _telephone_validation_get_default_settings();
-  return $settings;
-}
-
-/**
- * Get list of all available countries with codes.
- *
- * @return array
- *   Returns list of all countries from iso.inc file cross referenced with
- *   available country codes.
- *
- * @deprecated
- *   This is part of service now.
- *
- * @todo Remove.
- */
-function _telephone_validation_get_country_codes() {
-  include_once \Drupal::root() . '/includes/iso.inc';
-  $phone_util = PhoneNumberUtil::getInstance();
-  $regions = array();
-  foreach (_country_get_predefined_list() as $region => $name) {
-    $region_meta = $phone_util->getMetadataForRegion($region);
-    if (is_object($region_meta)) {
-      $regions[$region] = $name . ' - +' . $region_meta->getCountryCode() . ' ' . $region_meta->getLeadingDigits();
-    }
-  }
-  return $regions;
-}
-
-/**
- * Implements hook_field_info_alter().
- *
- * Defines default property types for telephone field type.
- *
- * @todo This is D7 code, evaluate and remove?
- */
-function telephone_validation_field_info_alter(&$field_info) {
-  $field_info['telephone']['property_callbacks'][] = 'telephone_validation_metadata_field_telephone_property_callback';
-}
-
-/**
- * Additional callback to adapt the property info for telephone fields.
- *
- * @see entity_metadata_field_entity_property_info()
- * @see entity_field_info_alter()
- * @see entity_property_text_formatted_info()
- *
- * @todo This is D7 code, evaluate and remove?
- */
-function telephone_validation_metadata_field_telephone_property_callback(&$info, $entity_type, $field, $instance, $field_type) {
-  $property = &$info[$entity_type]['bundles'][$instance['bundle']]['properties'][$field['field_name']];
-  $property['validation callback'] = '_telephone_validation_metadata_field_property_validation';
-  $property['setter callback'] = '_telephone_validation_metadata_field_property_set';
-}
-
-/**
- * Callback for setting field property values.
- *
- * @see entity_metadata_field_property_set().
- *
- * @todo This is D7 code, evaluate and remove?
- */
-function _telephone_validation_metadata_field_property_set($entity, $name, $value, $langcode, $entity_type, $info) {
-  $field = field_info_field($name);
-  $columns = array_keys($field['columns']);
-  $langcode = entity_metadata_field_get_language($entity_type, $entity, $field, $langcode);
-  $values = $field['cardinality'] == 1 ? array($value) : (array) $value;
-  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
-  $instance = field_info_instance($entity_type, $name, $bundle);
-  $settings = _telephone_validation_get_instance_settings($instance);
-
-  // If number looks ok, use google libphonenumber library to set correct
-  // output format.
-  $phone_util = PhoneNumberUtil::getInstance();
-
-  $items = array();
-  foreach ($values as $delta => $value) {
-    if (isset($value)) {
-      $default_region = ($settings['valid_format'] == PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
-      $number = $phone_util->parse($value, $default_region);
-      $items[$delta][$columns[0]] = $phone_util->format($number, $settings['store_format']);
-    }
-  }
-  $entity->{$name}[$langcode] = $items;
-
-  // Empty the static field language cache, so the field system picks up any
-  // possible new languages.
-  drupal_static_reset('field_language');
-}
-
-/**
- * Validation callback wrapper to set only valid data values.
- *
- * @todo This is D7 code, evaluate and remove?
- */
-function _telephone_validation_metadata_field_property_validation($items, $context) {
-
-  // Normalize incoming data.
-  $items = is_array($items) ? $items : array($items);
-
-  // Get parent entity info.
-  $entity_info = $context['parent']->info();
-  $entity_type = $entity_info['type'];
-
-  // Get field instance.
-  $instance = field_info_instance($entity_type, $context['name'], $context['parent']->getBundle());
-
-  // Load widget settings.
-  $settings = _telephone_validation_get_instance_settings($instance);
-
-  foreach ($items as $value) {
-    // Perform telephone validation on every value.
-    _telephone_validation($value, $settings);
-  }
-
-  // Return TRUE if everything seems to be ok.
-  return TRUE;
-}
-
-/**
- * Validation callback.
- *
- * @param string $value
- *   Raw field value.
- * @param array $settings
- *   Array of field settings.
- *
- * @return \libphonenumber\PhoneNumber
- *   Returns phone number object if number is valid.
- *
- * @throws \Exception
- *   Throws exception if number is invalid.
- *
- * @deprecated
- *   Use tel.validator service.
- *
- * @todo Remove.
- */
-function _telephone_validation($value, $settings = array()) {
-  // Be sure we have default settings if user didn't submit field settings
-  // form yet.
-  $settings += _telephone_validation_get_default_settings();
-
-  // If number looks more or less ok, use google libphonenumber library to
-  // parse  it.
-  $phone_util = PhoneNumberUtil::getInstance();
-
-  // If number will be incorrect (there will be no way to parse it) we will
-  // get an exception here.
-  $default_region = ($settings['valid_format'] == PhoneNumberFormat::NATIONAL) ? $settings['valid_countries'] : NULL;
-  $number = $phone_util->parse($value, $default_region);
-
-  // If can be parsed do validation.
-  if (!$phone_util->isValidNumber($number)) {
-    throw new Exception('Field value is invalid.');
-  }
-
-  // If valid_countries element is not empty and default region can be loaded
-  // do region matching validation.
-  // This condition is always TRUE for national phone number format.
-  if (!empty($settings['valid_countries']) && $default_region = $phone_util->getRegionCodeForNumber($number)) {
-    // If number should belong to one of selected countries.
-    // This condition is always TRUE for national phone number format.
-    if (!isset($settings['valid_countries'][$default_region]) && $settings['valid_countries'] != $default_region) {
-      throw new Exception('Field does not support phone number from your country.');
-    }
-  }
-
-  return $number;
 }
