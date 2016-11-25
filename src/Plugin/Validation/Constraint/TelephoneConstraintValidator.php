@@ -7,6 +7,7 @@
 
 namespace Drupal\telephone_validation\Plugin\Validation\Constraint;
 
+use Drupal\telephone_validation\Validator;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidatorInterface;
 use Symfony\Component\Validator\ExecutionContextInterface;
@@ -24,16 +25,16 @@ class TelephoneConstraintValidator implements ConstraintValidatorInterface {
   protected $context;
 
   /**
-   * @var
+   * @var Validator
    */
-  protected $validation_service;
+  protected $validator;
 
   /**
    * {@inheritdoc}
    */
   public function initialize(ExecutionContextInterface $context) {
     $this->context = $context;
-    $this->validation_service = \Drupal::service('tel.validator');
+    $this->validator = \Drupal::service('telephone_validation.validator');
   }
 
   /**
@@ -46,9 +47,12 @@ class TelephoneConstraintValidator implements ConstraintValidatorInterface {
     catch (\InvalidArgumentException $e) {
       return;
     }
-    $number = $number['value'];
-    $settings = array();
-    if (!$this->validation_service->isValid($number, $settings)) {
+    $field = $value->getFieldDefinition();
+    if (!$this->validator->isValid(
+      $number['value'],
+      $field->getThirdPartySetting('telephone_validation', 'format'),
+      $field->getThirdPartySetting('telephone_validation', 'country')
+    )) {
       $this->context->addViolation($constraint->message, array('@number' => $number));
     }
   }

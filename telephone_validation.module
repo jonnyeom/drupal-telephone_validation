@@ -39,108 +39,64 @@ function telephone_validation_field_info_alter(&$info) {
   $info['telephone']['constraints']['Telephone'] = array();
 }
 
-
-/**
- * Implements hook_field_widget_third_party_settings_form().
- */
-function telephone_validation_field_widget_third_party_settings_form(\Drupal\Core\Field\WidgetInterface $plugin, \Drupal\Core\Field\FieldDefinitionInterface $field_definition, $form_mode, $form, \Drupal\Core\Form\FormStateInterface $form_state) {
-  $element['field_test_widget_third_party_settings_form'] = array(
-    '#type' => 'textfield',
-    '#title' => t('3rd party widget settings form'),
-    '#default_value' => $plugin->getThirdPartySetting('field_third_party_test', 'field_test_widget_third_party_settings_form'),
-  );
-  return $element;
-}
-
 /**
  * Implements hook_form_FORM_ID_alter().
- *
- * @todo Refactor.
  */
 function telephone_validation_form_field_config_edit_form_alter(&$form, FormStateInterface &$form_state) {
-  // Get field and instance.
-  $field = $form['#field'];
-  $instance = $form['#instance'];
-
-  if ($instance['widget']['type'] == 'telephone_default' && !$field['locked']) {
-
-    if (!isset($instance['widget']['settings']['telephone_validation'])) {
-      // If that's a brand new instance initialize settings array.
-      $instance['widget']['settings']['telephone_validation'] = array();
-    }
-    $settings = $instance['widget']['settings']['telephone_validation'];
-    // Ensure we have at least default values.
-    $settings += array(
-      'valid_format' => PhoneNumberFormat::E164,
-      'valid_countries' => array(),
-      'store_format' => PhoneNumberFormat::E164,
-    );
-
-    if (isset($form_state['values']['instance']['widget']['settings']['telephone_validation'])) {
-      $form_settings = $form_state['values']['instance']['widget']['settings']['telephone_validation'];
-    }
-
-    if (!isset($form['instance']['widget']['settings'])) {
-      // Initialize settings array.
-      $form['instance']['widget']['settings'] = array();
-    }
-
-    // Add parent fieldset for module settings.
-    $form['instance']['widget']['settings']['telephone_validation'] = array(
+  /** @var \Drupal\field\Entity\FieldConfig $field */
+  $field = $form_state->getFormObject()->getEntity();
+  if ($field->getType() == 'telephone') {
+    /** @var \Drupal\telephone_validation\Validator $validator */
+    $validator = \Drupal::service('telephone_validation.validator');
+    $form['telephone_validation'] = array(
       '#type' => 'fieldset',
-      '#title' => t('Validation'),
+      '#title' => t('Telephone validation'),
     );
 
     // Right now format field supports E164 format only (just to be sure that
     // phone validator will work correctly).
-    $form['instance']['widget']['settings']['telephone_validation']['valid_format'] = array(
+    $form['telephone_validation']['format'] = array(
       '#type' => 'select',
       '#title' => t('Valid telephone format'),
       '#description' => t('It is recommended to use E164 validation format. Validator will discover phone number country of origin automatically. If you want to limit field instance to one country only you can change it National format and choose country in next field.'),
-      '#default_value' => $settings['valid_format'],
+      '#default_value' => $field->getThirdPartySetting('telephone_validation', 'format', PhoneNumberFormat::E164),
       '#options' => array(
         PhoneNumberFormat::E164 => t('E164'),
         PhoneNumberFormat::NATIONAL => t('National'),
       ),
       '#ajax' => array(
         'callback' => '_telephone_validation_valid_countries_ajax_callback',
-        'wrapper' => 'telephone-validation-valid-countries',
+        'wrapper' => 'telephone-validation-country',
         'method' => 'replace',
       ),
     );
-
-    $default_value = isset($form_settings['valid_format']) ? $form_settings['valid_format'] : $settings['valid_format'];
-    $form['instance']['widget']['settings']['telephone_validation']['valid_countries'] = array(
+    $val = $form_state->getValue('format') ?: $form['telephone_validation']['format']['#default_value'];
+    $form['telephone_validation']['country'] = array(
       '#type' => 'select',
       '#title' => t('List of valid countries'),
       '#description' => t('If no country selected all countries are valid.'),
-      '#default_value' => $settings['valid_countries'],
-      '#multiple' => ($default_value == PhoneNumberFormat::NATIONAL) ? FALSE : TRUE,
-      '#options' => _telephone_validation_get_country_codes(),
-      '#prefix' => '<div id="telephone-validation-valid-countries">',
+      '#default_value' => $field->getThirdPartySetting('telephone_validation', 'country'),
+      '#multiple' => $val != PhoneNumberFormat::NATIONAL,
+      '#options' => $validator->getCountryList(),
+      '#prefix' => '<div id="telephone-validation-country">',
       '#suffix' => '</div>',
     );
-
-    $form['instance']['widget']['settings']['telephone_validation']['store_format'] = array(
-      '#type' => 'select',
-      '#title' => t('Store format'),
-      '#description' => t('It is highly recommended to store data in E164 format. That is international format with no whitespaces preceded by plus and country code. Use other formats only if you know what you are doing.'),
-      '#default_value' => $settings['store_format'],
-      '#options' => array(
-        PhoneNumberFormat::E164 => t('E164'),
-        PhoneNumberFormat::NATIONAL => t('National'),
-        PhoneNumberFormat::INTERNATIONAL => t('International'),
-      ),
-    );
-
+    $form['actions']['submit']['#submit'][] = 'telephone_validation_form_field_config_edit_form_submit';
   }
 }
 
 /**
  * Returns valid countries field on ajax request.
- *
- * @todo Refactor.
  */
 function _telephone_validation_valid_countries_ajax_callback($form, FormStateInterface $form_state) {
-  return $form['instance']['widget']['settings']['telephone_validation']['valid_countries'];
+  return $form['telephone_validation']['country'];
+}
+
+function telephone_validation_form_field_config_edit_form_submit(&$form, FormStateInterface &$form_state) {
+  /** @var \Drupal\field\Entity\FieldConfig $field */
+  $field = $form_state->getFormObject()->getEntity();
+  $field->setThirdPartySetting('telephone_validation', 'format', $form_state->getValue('format'));
+  $country = $form_state->getValue('country');
+  $field->setThirdPartySetting('telephone_validation', 'country', is_array($country) ? $country : array($country));
+  $field->save();
 }

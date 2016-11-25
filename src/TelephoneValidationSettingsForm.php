@@ -34,7 +34,7 @@ class TelephoneValidationSettingsForm extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $config = $this->config('telephone_validation.settings');
-    $service = \Drupal::service('tel.validator');
+    $service = \Drupal::service('telephone_validation.validator');
 
     $form['telephone_validation_valid_format'] = array(
       '#type' => 'select',

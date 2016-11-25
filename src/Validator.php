@@ -9,7 +9,7 @@ namespace Drupal\telephone_validation;
 use libphonenumber\PhoneNumberUtil;
 use libphonenumber\PhoneNumberFormat;
 
-class TelephoneValidation {
+class Validator {
 
   /**
    * @var \libphonenumber\PhoneNumberUtil
@@ -28,37 +28,39 @@ class TelephoneValidation {
   /**
    * Check if number is valid for given settings.
    *
-   * @param $number
+   * @param $value
    *   Phone number.
-   * @param array $settings
-   *   Settings array.
+   * @param $format
+   *   Supported input format.
+   * @param array $country
+   *   (optional) List of supported countries.
    *
    * @return bool
-   *   Valid or not.
+   *   Boolean representation of validation result.
    */
-  public function isValid($number, array $settings) {
+  public function isValid($value, $format, array $country = []) {
 
     try {
       // Get default country.
-      $default_region = ($settings['valid_format'] === PhoneNumberFormat::NATIONAL) ? reset($settings['valid_countries']) : NULL;
+      $default_region = ($format == PhoneNumberFormat::NATIONAL) ? reset($country) : NULL;
       // Parse object.
-      $number_object = $this->phone_utils->parse($number, $default_region);
+      $number = $this->phone_utils->parse($value, $default_region);
     }
     catch (\Exception $e) {
       return FALSE;
     }
     // Perform basic validation.
-    if (!$this->phone_utils->isValidNumber($number_object)) {
+    if (!$this->phone_utils->isValidNumber($number)) {
       return FALSE;
     }
 
     // If #validation_countries is not empty and default region can be loaded
     // do region matching validation.
     // This condition is always TRUE for national phone number format.
-    if (!empty($settings['valid_countries']) && $default_region = $this->phone_utils->getRegionCodeForNumber($number_object)) {
+    if (!empty($country) && $default_region = $this->phone_utils->getRegionCodeForNumber($number)) {
       // If number should belong to one of selected countries.
       // This condition is always TRUE for national phone number format.
-      if (!isset($settings['valid_countries'][$default_region])) {
+      if (array_search($default_region, $country) === FALSE) {
         return FALSE;
       }
     }

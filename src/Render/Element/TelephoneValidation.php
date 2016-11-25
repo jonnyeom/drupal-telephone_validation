@@ -38,7 +38,7 @@ class TelephoneValidation extends Tel {
    */
   public static function validateTel(&$element, FormStateInterface $form_state, &$complete_form) {
 
-    $service = \Drupal::service('tel.validator');
+    $service = \Drupal::service('telephone_validation.validator');
     $config = \Drupal::config('telephone_validation.settings');
 
     $value = trim($element['#value']);
