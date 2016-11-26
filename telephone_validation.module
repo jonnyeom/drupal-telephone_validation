@@ -12,8 +12,11 @@ use Drupal\Core\Form\FormStateInterface;
  * Implements hook_element_info_alter().
  */
 function telephone_validation_element_info_alter(array &$types) {
-  
+  // Retrieve configuration entity.
   $config = \Drupal::config('telephone_validation.settings');
+  // Adds default validation settings to telephone element.
+  // This is just for convenience and to improve DX. You can override following
+  // settings at any time on form definition level.
   $types['tel']['#element_validate_settings'] = [
     'format' => $config->get('format') ?: PhoneNumberFormat::E164,
     'country'=> $config->get('country') ?: [],
@@ -22,10 +25,9 @@ function telephone_validation_element_info_alter(array &$types) {
 
 /**
  * Implements hook_field_info_alter().
- *
- * Add constraint to telephone field.
  */
 function telephone_validation_field_info_alter(&$info) {
+  // Add validation constraint to telephone field.
   $info['telephone']['constraints']['Telephone'] = array();
 }
 
@@ -35,20 +37,22 @@ function telephone_validation_field_info_alter(&$info) {
 function telephone_validation_form_field_config_edit_form_alter(&$form, FormStateInterface &$form_state) {
   /** @var \Drupal\field\Entity\FieldConfig $field */
   $field = $form_state->getFormObject()->getEntity();
+
+  // Check field type and add config form but only if field type is telephone.
   if ($field->getType() == 'telephone') {
     /** @var \Drupal\telephone_validation\Validator $validator */
     $validator = \Drupal::service('telephone_validation.validator');
+
     $form['telephone_validation'] = array(
       '#type' => 'fieldset',
       '#title' => t('Telephone validation'),
     );
 
-    // Right now format field supports E164 format only (just to be sure that
-    // phone validator will work correctly).
+    // Choose which telephone format is valid for this field.
     $form['telephone_validation']['format'] = array(
       '#type' => 'select',
-      '#title' => t('Valid telephone format'),
-      '#description' => t('It is recommended to use E164 validation format. Validator will discover phone number country of origin automatically. If you want to limit field instance to one country only you can change it National format and choose country in next field.'),
+      '#title' => t('Format'),
+      '#description' => t('Validation format. It is recommended to use E164 validation format. Validator will automatically discover country of origin. If you want to limit field instance to only one country you can change it National format and choose country in field below.'),
       '#default_value' => $field->getThirdPartySetting('telephone_validation', 'format', PhoneNumberFormat::E164),
       '#options' => array(
         PhoneNumberFormat::E164 => t('E164'),
@@ -60,10 +64,12 @@ function telephone_validation_form_field_config_edit_form_alter(&$form, FormStat
         'method' => 'replace',
       ),
     );
+
+    // Choose valid country (or many countries).
     $val = $form_state->getValue('format') ?: $form['telephone_validation']['format']['#default_value'];
     $form['telephone_validation']['country'] = array(
       '#type' => 'select',
-      '#title' => t('List of valid countries'),
+      '#title' => t('Country'),
       '#description' => t('If no country selected all countries are valid.'),
       '#default_value' => $field->getThirdPartySetting('telephone_validation', 'country'),
       '#multiple' => $val != PhoneNumberFormat::NATIONAL,
@@ -71,6 +77,7 @@ function telephone_validation_form_field_config_edit_form_alter(&$form, FormStat
       '#prefix' => '<div id="telephone-validation-country">',
       '#suffix' => '</div>',
     );
+    // Add submit handler.
     $form['actions']['submit']['#submit'][] = 'telephone_validation_form_field_config_edit_form_submit';
   }
 }
@@ -88,8 +95,11 @@ function _telephone_validation_country_ajax_callback($form, FormStateInterface $
 function telephone_validation_form_field_config_edit_form_submit(&$form, FormStateInterface &$form_state) {
   /** @var \Drupal\field\Entity\FieldConfig $field */
   $field = $form_state->getFormObject()->getEntity();
+  // Set format.
   $field->setThirdPartySetting('telephone_validation', 'format', $form_state->getValue('format'));
   $country = $form_state->getValue('country');
+  // Set country.
   $field->setThirdPartySetting('telephone_validation', 'country', is_array($country) ? $country : array($country));
+  // Save field definition.
   $field->save();
 }

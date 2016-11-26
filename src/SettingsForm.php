@@ -13,7 +13,7 @@ use libphonenumber\PhoneNumberFormat;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Configure hello settings for this site.
+ * Form for default validation settings.
  */
 class SettingsForm extends ConfigFormBase {
 
@@ -32,6 +32,10 @@ class SettingsForm extends ConfigFormBase {
    *
    * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The factory for configuration objects.
+   * @param Validator $validator
+   *   Telephone validation service.
+   * @param ElementInfoManagerInterface $element_info_manager
+   *   Collects available render array element types.
    */
   public function __construct(ConfigFactoryInterface $config_factory, Validator $validator, ElementInfoManagerInterface $element_info_manager) {
     $this->validator = $validator;
@@ -69,8 +73,11 @@ class SettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
+
+    // Retrieve configuration object.
     $config = $this->config('telephone_validation.settings');
 
+    // Define valid telephone format.
     $form['format'] = array(
       '#type' => 'select',
       '#title' => $this->t('Format'),
@@ -85,6 +92,8 @@ class SettingsForm extends ConfigFormBase {
         'method' => 'replace',
       ),
     );
+
+    // Define available countries (or country if format = NATIONAL).
     $val = $form_state->getValue('format') ?: $form['format']['#default_value'];
     $form['country'] = array(
       '#type' => 'select',
@@ -101,9 +110,7 @@ class SettingsForm extends ConfigFormBase {
   }
 
   /**
-   * @param array $form
-   * @param \Drupal\Core\Form\FormStateInterface $form_state
-   * @return mixed
+   * Ajax callback.
    */
   public function getCountry(array &$form, FormStateInterface $form_state) {
     return $form['country'];
@@ -113,10 +120,12 @@ class SettingsForm extends ConfigFormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $country = $form_state->getValue('country');
+    // Save new config.
     $this->config('telephone_validation.settings')
       ->set('format', $form_state->getValue('format'))
       ->set('country', is_array($country) ? $country : array($country))
       ->save();
+    // Clear element info cache.
     $this->elementInfoManager->clearCachedDefinitions();
 
     parent::submitForm($form, $form_state);

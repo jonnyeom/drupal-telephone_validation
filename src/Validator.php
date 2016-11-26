@@ -1,7 +1,8 @@
 <?php
 
 /**
- *
+ * @file
+ * Telephone validation service.
  */
 
 namespace Drupal\telephone_validation;
@@ -9,6 +10,9 @@ namespace Drupal\telephone_validation;
 use libphonenumber\PhoneNumberUtil;
 use libphonenumber\PhoneNumberFormat;
 
+/**
+ * Performs telephone validation.
+ */
 class Validator {
 
   /**
@@ -17,9 +21,7 @@ class Validator {
   public $phone_utils;
 
   /**
-   * TelephoneValidation constructor.
-   *
-   * Initialize PhoneNumberUtil.
+   * Validator constructor.
    */
   public function __construct() {
     $this->phone_utils = PhoneNumberUtil::getInstance();
@@ -33,7 +35,7 @@ class Validator {
    * @param $format
    *   Supported input format.
    * @param array $country
-   *   (optional) List of supported countries.
+   *   (optional) List of supported countries. If empty all countries are valid.
    *
    * @return bool
    *   Boolean representation of validation result.
@@ -43,23 +45,24 @@ class Validator {
     try {
       // Get default country.
       $default_region = ($format == PhoneNumberFormat::NATIONAL) ? reset($country) : NULL;
-      // Parse object.
+      // Parse to object.
       $number = $this->phone_utils->parse($value, $default_region);
     }
     catch (\Exception $e) {
+      // If number could not be parsed by phone utils that's a one good reason
+      // to say it's not valid.
       return FALSE;
     }
-    // Perform basic validation.
+    // Perform basic telephone validation.
     if (!$this->phone_utils->isValidNumber($number)) {
       return FALSE;
     }
 
-    // If #validation_countries is not empty and default region can be loaded
+    // If country array is not empty and default region can be loaded
     // do region matching validation.
     // This condition is always TRUE for national phone number format.
     if (!empty($country) && $default_region = $this->phone_utils->getRegionCodeForNumber($number)) {
-      // If number should belong to one of selected countries.
-      // This condition is always TRUE for national phone number format.
+      // Check if number's region matches list of supported countries.
       if (array_search($default_region, $country) === FALSE) {
         return FALSE;
       }
@@ -69,30 +72,10 @@ class Validator {
   }
 
   /**
-   * Changes number to format.
-   *
-   * @param string $number
-   *   Telephone number.
-   * @param array $settings
-   *   Settings array.
-   *
-   * @return string
-   *   Phone number in new format.
-   */
-  public function storeFormat($number, array $settings) {
-    // Get default country.
-    $default_region = ($settings['valid_format'] === PhoneNumberFormat::NATIONAL) ? reset($settings['valid_countries']) : NULL;
-    // Parse object.
-    $number_object = $this->phone_utils->parse($number, $default_region);
-    // Change phone number format to $settings['store_format'].
-    return $this->phone_utils->format($number_object, $settings['store_format']);
-  }
-
-  /**
    * Get list of countries with country code and leading digits.
    *
    * @return array
-   *   Flatten array you can use directly in select lists.
+   *   Flatten array you can use it directly in select lists.
    */
   public function getCountryList() {
     $phone_util = PhoneNumberUtil::getInstance();

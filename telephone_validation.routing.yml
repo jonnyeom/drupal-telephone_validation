@@ -1,4 +1,4 @@
-telephone_validation.admin_settings:
+telephone_validation.settings:
   path: '/admin/config/content/telephone_validation'
   defaults:
     _form: '\Drupal\telephone_validation\SettingsForm'
