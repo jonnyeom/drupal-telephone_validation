@@ -2,10 +2,7 @@
 
 /**
  * @file
- * Validate phone number.
- *
- * Add element_validation method to telephone_default widget to make sure phone
- * has valid format.
+ * Validate telephone number.
  */
 
 use libphonenumber\PhoneNumberFormat;
@@ -15,18 +12,11 @@ use Drupal\Core\Form\FormStateInterface;
  * Implements hook_element_info_alter().
  */
 function telephone_validation_element_info_alter(array &$types) {
-  //  if (!isset($types['tel']['#element_validate'])) {
-  //    $types['tel']['#element_validate'] = [];
-  //  }
-  //  $types['tel']['#element_validate'][] = [
-  //    'Drupal\telephone_validation\Render\Element\TelephoneValidation', 'validateTel',
-  //  ];
-
+  
   $config = \Drupal::config('telephone_validation.settings');
   $types['tel']['#element_validate_settings'] = [
-    'valid_format' => $config->get('valid_format'),
-    'valid_countries'=> $config->get('valid_countries'),
-    'store_format' => $config->get('store_format'),
+    'format' => $config->get('format') ?: PhoneNumberFormat::E164,
+    'country'=> $config->get('country') ?: [],
   ];
 }
 
@@ -65,7 +55,7 @@ function telephone_validation_form_field_config_edit_form_alter(&$form, FormStat
         PhoneNumberFormat::NATIONAL => t('National'),
       ),
       '#ajax' => array(
-        'callback' => '_telephone_validation_valid_countries_ajax_callback',
+        'callback' => '_telephone_validation_country_ajax_callback',
         'wrapper' => 'telephone-validation-country',
         'method' => 'replace',
       ),
@@ -88,10 +78,13 @@ function telephone_validation_form_field_config_edit_form_alter(&$form, FormStat
 /**
  * Returns valid countries field on ajax request.
  */
-function _telephone_validation_valid_countries_ajax_callback($form, FormStateInterface $form_state) {
+function _telephone_validation_country_ajax_callback($form, FormStateInterface $form_state) {
   return $form['telephone_validation']['country'];
 }
 
+/**
+ * Form submit handler.
+ */
 function telephone_validation_form_field_config_edit_form_submit(&$form, FormStateInterface &$form_state) {
   /** @var \Drupal\field\Entity\FieldConfig $field */
   $field = $form_state->getFormObject()->getEntity();
