@@ -7,6 +7,7 @@
 
 namespace Drupal\telephone_validation;
 
+use Drupal\Core\Locale\CountryManagerInterface;
 use libphonenumber\PhoneNumberUtil;
 use libphonenumber\PhoneNumberFormat;
 
@@ -21,10 +22,16 @@ class Validator {
   public $phone_utils;
 
   /**
+   * @var \Drupal\Core\Locale\CountryManagerInterface
+   */
+  public $countryManager;
+
+  /**
    * Validator constructor.
    */
-  public function __construct() {
+  public function __construct(CountryManagerInterface $country_manager) {
     $this->phone_utils = PhoneNumberUtil::getInstance();
+    $this->countryManager = $country_manager;
   }
 
   /**
@@ -78,10 +85,9 @@ class Validator {
    *   Flatten array you can use it directly in select lists.
    */
   public function getCountryList() {
-    $phone_util = PhoneNumberUtil::getInstance();
     $regions = array();
-    foreach (\Drupal::service('country_manager')->getList() as $region => $name) {
-      $region_meta = $phone_util->getMetadataForRegion($region);
+    foreach ($this->countryManager->getList() as $region => $name) {
+      $region_meta = $this->phone_utils->getMetadataForRegion($region);
       if (is_object($region_meta)) {
         $regions[$region] = $name . ' - +' . $region_meta->getCountryCode() . ' ' . $region_meta->getLeadingDigits();
       }
