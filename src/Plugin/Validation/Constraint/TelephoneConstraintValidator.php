@@ -53,7 +53,7 @@ class TelephoneConstraintValidator implements ConstraintValidatorInterface {
       $field->getThirdPartySetting('telephone_validation', 'format'),
       $field->getThirdPartySetting('telephone_validation', 'country')
     )) {
-      $this->context->addViolation($constraint->message, array('@number' => $number));
+      $this->context->addViolation($constraint->message, array('@number' => $number['value']));
     }
   }
 
