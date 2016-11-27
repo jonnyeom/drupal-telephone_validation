@@ -48,6 +48,14 @@ function telephone_validation_form_field_config_edit_form_alter(&$form, FormStat
       '#title' => t('Telephone validation'),
     );
 
+    // Let people decide if they want to have validation on or off per instance.
+    $settings = $field->getThirdPartySettings('telephone_validation');
+    $form['telephone_validation']['enabled'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Enabled'),
+      '#default_value' => !empty($settings),
+    );
+
     // Choose which telephone format is valid for this field.
     $form['telephone_validation']['format'] = array(
       '#type' => 'select',
@@ -63,6 +71,11 @@ function telephone_validation_form_field_config_edit_form_alter(&$form, FormStat
         'wrapper' => 'telephone-validation-country',
         'method' => 'replace',
       ),
+      '#states' => array(
+        'invisible' => array(
+          ':input[name="enabled"]' => array('checked' => FALSE),
+        ),
+      ),
     );
 
     // Choose valid country (or many countries).
@@ -76,6 +89,11 @@ function telephone_validation_form_field_config_edit_form_alter(&$form, FormStat
       '#options' => $validator->getCountryList(),
       '#prefix' => '<div id="telephone-validation-country">',
       '#suffix' => '</div>',
+      '#states' => array(
+        'invisible' => array(
+          ':input[name="enabled"]' => array('checked' => FALSE),
+        ),
+      ),
     );
     // Add submit handler.
     $form['actions']['submit']['#submit'][] = 'telephone_validation_form_field_config_edit_form_submit';
@@ -95,11 +113,18 @@ function _telephone_validation_country_ajax_callback($form, FormStateInterface $
 function telephone_validation_form_field_config_edit_form_submit(&$form, FormStateInterface &$form_state) {
   /** @var \Drupal\field\Entity\FieldConfig $field */
   $field = $form_state->getFormObject()->getEntity();
-  // Set format.
-  $field->setThirdPartySetting('telephone_validation', 'format', $form_state->getValue('format'));
-  $country = $form_state->getValue('country');
-  // Set country.
-  $field->setThirdPartySetting('telephone_validation', 'country', is_array($country) ? $country : array($country));
+  if ($form_state->getValue('enabled', FALSE)) {
+    // Set format.
+    $field->setThirdPartySetting('telephone_validation', 'format', $form_state->getValue('format'));
+    $country = $form_state->getValue('country');
+    // Set country.
+    $field->setThirdPartySetting('telephone_validation', 'country', is_array($country) ? $country : array($country));
+  }
+  else {
+    // Unset 3rd party settings.
+    $field->unsetThirdPartySetting('telephone_validation', 'format');
+    $field->unsetThirdPartySetting('telephone_validation', 'country');
+  }
   // Save field definition.
   $field->save();
 }
