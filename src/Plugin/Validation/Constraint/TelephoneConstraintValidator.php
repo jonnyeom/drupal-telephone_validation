@@ -7,6 +7,7 @@
 
 namespace Drupal\telephone_validation\Plugin\Validation\Constraint;
 
+use Drupal\field\Entity\FieldConfig;
 use Drupal\telephone_validation\Validator;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidatorInterface;
@@ -47,7 +48,14 @@ class TelephoneConstraintValidator implements ConstraintValidatorInterface {
     catch (\InvalidArgumentException $e) {
       return;
     }
+    /** @var FieldConfig $field */
     $field = $value->getFieldDefinition();
+    $settings = $field->getThirdPartySettings('telephone_validation');
+    // If no settings found we must skip validation.
+    if (empty($settings)) {
+      return;
+    }
+    // Validate number against validation settings.
     if (!$this->validator->isValid(
       $number['value'],
       $field->getThirdPartySetting('telephone_validation', 'format'),
