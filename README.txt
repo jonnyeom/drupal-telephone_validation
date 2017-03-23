@@ -1,24 +1,32 @@
 Telephone Validation
 ========================
 
-This is basic module which brings validation to Telephone field instance
-(telephone_default widget). It uses libphonenumber-php library (port of google's
-libphonenumber library).
-Module can discover where phone number comes from and if it's valid or not.
+This is basic module which brings validation to Telephone field. It uses
+giggsey/libphonenumber-for-php library (port of google's libphonenumber library).
+Module can automatically discover where the phone number comes from (which
+country) and if it's valid or not.
 
 # Dependencies
 
 - telephone
 - field_ui
+- giggsey/libphonenumber-for-php
 
-# Instalation
+# Prerequisites
 
-Just enable module. You will might need to use drush composer extension to
-install libphonenumber library. If so, follow composer_manager documentation
-page https://www.drupal.org/node/2405805
-After installation you'll find new fieldset under each telephone field instance
-where you can decide how number should looks like and what makes it valid.
+Use composer to download giggsey/libphonenumber-for-php lib. You have several
+options here - just choose one which suits you best. IMO the easiest one is to
+use composer for downloading this module.
+
+Read more
+https://www.drupal.org/docs/develop/using-composer
+
+
+# Installation
+
+Just enable the module. All telephone fields will have option to opt-in for
+for validation.
 
 # Credits
 
-Jakub Piasecki for Ny Media AS
+Jakub Piasecki @ Ny Media AS
