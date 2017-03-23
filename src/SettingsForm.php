@@ -1,8 +1,5 @@
 <?php
-/**
- * @file
- * Contains \Drupal\telephone_validation\TelephoneValidationSettingsForm
- */
+
 namespace Drupal\telephone_validation;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -78,7 +75,7 @@ class SettingsForm extends ConfigFormBase {
     $config = $this->config('telephone_validation.settings');
 
     // Define valid telephone format.
-    $form['format'] = array(
+    $form['format'] = [
       '#type' => 'select',
       '#title' => $this->t('Format'),
       '#default_value' => $config->get('format') ?: PhoneNumberFormat::E164,
@@ -86,16 +83,16 @@ class SettingsForm extends ConfigFormBase {
         PhoneNumberFormat::E164 => $this->t('E164'),
         PhoneNumberFormat::NATIONAL => $this->t('National'),
       ],
-      '#ajax' => array(
+      '#ajax' => [
         'callback' => '::getCountry',
         'wrapper' => 'telephone-validation-country',
         'method' => 'replace',
-      ),
-    );
+      ],
+    ];
 
     // Define available countries (or country if format = NATIONAL).
     $val = $form_state->getValue('format') ?: $form['format']['#default_value'];
-    $form['country'] = array(
+    $form['country'] = [
       '#type' => 'select',
       '#title' => $this->t('Valid countries'),
       '#description' => t('If no country selected all countries are valid.'),
@@ -104,7 +101,7 @@ class SettingsForm extends ConfigFormBase {
       '#options' => $this->validator->getCountryList(),
       '#prefix' => '<div id="telephone-validation-country">',
       '#suffix' => '</div>',
-    );
+    ];
 
     return parent::buildForm($form, $form_state);
   }
@@ -123,11 +120,12 @@ class SettingsForm extends ConfigFormBase {
     // Save new config.
     $this->config('telephone_validation.settings')
       ->set('format', $form_state->getValue('format'))
-      ->set('country', is_array($country) ? $country : array($country))
+      ->set('country', is_array($country) ? $country : [$country])
       ->save();
     // Clear element info cache.
     $this->elementInfoManager->clearCachedDefinitions();
 
     parent::submitForm($form, $form_state);
   }
+
 }

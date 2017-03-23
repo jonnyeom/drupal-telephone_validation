@@ -1,14 +1,7 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\link\Plugin\Validation\Constraint\LinkExternalProtocolsConstraintValidator.
- */
-
 namespace Drupal\telephone_validation\Plugin\Validation\Constraint;
 
-use Drupal\field\Entity\FieldConfig;
-use Drupal\telephone_validation\Validator;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\ConstraintValidatorInterface;
 use Symfony\Component\Validator\ExecutionContextInterface;
@@ -26,7 +19,7 @@ class TelephoneConstraintValidator implements ConstraintValidatorInterface {
   protected $context;
 
   /**
-   * @var Validator
+   * @var \Drupal\telephone_validation\Validator
    */
   protected $validator;
 
@@ -48,7 +41,7 @@ class TelephoneConstraintValidator implements ConstraintValidatorInterface {
     catch (\InvalidArgumentException $e) {
       return;
     }
-    /** @var FieldConfig $field */
+    /** @var \Drupal\field\Entity\FieldConfig $field */
     $field = $value->getFieldDefinition();
     $settings = $field->getThirdPartySettings('telephone_validation');
     // If no settings found we must skip validation.
@@ -61,7 +54,7 @@ class TelephoneConstraintValidator implements ConstraintValidatorInterface {
       $field->getThirdPartySetting('telephone_validation', 'format'),
       $field->getThirdPartySetting('telephone_validation', 'country')
     )) {
-      $this->context->addViolation($constraint->message, array('@number' => $number['value']));
+      $this->context->addViolation($constraint->message, ['@number' => $number['value']]);
     }
   }
 

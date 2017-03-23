@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\Core\Validation\Plugin\Validation\Constraint\EmailConstraint.
- */
-
 namespace Drupal\telephone_validation\Plugin\Validation\Constraint;
 
 use Symfony\Component\Validator\Constraint;

@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Telephone validation service.
- */
-
 namespace Drupal\telephone_validation;
 
 use Drupal\Component\Render\FormattableMarkup;
@@ -86,7 +81,7 @@ class Validator {
    *   Flatten array you can use it directly in select lists.
    */
   public function getCountryList() {
-    $regions = array();
+    $regions = [];
     foreach ($this->countryManager->getList() as $region => $name) {
       $region_meta = $this->phone_utils->getMetadataForRegion($region);
       if (is_object($region_meta)) {
@@ -98,4 +93,5 @@ class Validator {
     }
     return $regions;
   }
+
 }

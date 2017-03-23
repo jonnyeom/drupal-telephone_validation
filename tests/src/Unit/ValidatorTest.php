@@ -2,7 +2,6 @@
 
 namespace Drupal\Tests\telephone_validation\Unit;
 
-use Drupal\Core\Locale\CountryManagerInterface;
 use Drupal\telephone_validation\Validator;
 use Drupal\Tests\UnitTestCase;
 use libphonenumber\PhoneNumberFormat;
@@ -14,7 +13,7 @@ use libphonenumber\PhoneNumberFormat;
 class ValidatorTest extends UnitTestCase {
 
   /**
-   * @var CountryManagerInterface
+   * @var \Drupal\Core\Locale\CountryManagerInterface
    */
   protected $countryManager;
 
@@ -79,4 +78,5 @@ class ValidatorTest extends UnitTestCase {
     // countries from white-list.
     $this->assertFalse($validator->isValid('+1' . $number, PhoneNumberFormat::E164, ['NO']));
   }
+
 }

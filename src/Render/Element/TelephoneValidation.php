@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\telephone_validation\Render\Element\TelephoneValidation.
- */
-
 namespace Drupal\telephone_validation\Render\Element;
 
 use Drupal\Core\Render\Element\Tel;
@@ -51,7 +46,8 @@ class TelephoneValidation extends Tel {
 
     // Check if value is valid (if not empty).
     if ($value !== '' && !$service->isValid($value, $element['#element_validate_settings']['format'], $element['#element_validate_settings']['country'])) {
-      $form_state->setError($element, t('The phone number %phone is not valid.', array('%phone' => $value)));
+      $form_state->setError($element, t('The phone number %phone is not valid.', ['%phone' => $value]));
     }
   }
+
 }
