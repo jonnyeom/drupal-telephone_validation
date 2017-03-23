@@ -19,6 +19,8 @@ class TelephoneConstraintValidator implements ConstraintValidatorInterface {
   protected $context;
 
   /**
+   * Validator service.
+   *
    * @var \Drupal\telephone_validation\Validator
    */
   protected $validator;

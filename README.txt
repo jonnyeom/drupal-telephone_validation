@@ -2,7 +2,7 @@ Telephone Validation
 ========================
 
 This is basic module which brings validation to Telephone field. It uses
-giggsey/libphonenumber-for-php library (port of google's libphonenumber library).
+giggsey/libphonenumber-for-php library, port of google's libphonenumber library.
 Module can automatically discover where the phone number comes from (which
 country) and if it's valid or not.
 

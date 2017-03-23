@@ -13,6 +13,8 @@ use libphonenumber\PhoneNumberFormat;
 class ValidatorTest extends UnitTestCase {
 
   /**
+   * Country manager service mock.
+   *
    * @var \Drupal\Core\Locale\CountryManagerInterface
    */
   protected $countryManager;
@@ -34,7 +36,7 @@ class ValidatorTest extends UnitTestCase {
   /**
    * Tests get country list.
    *
-   * ::covers getCountryList
+   * ::covers getCountryList.
    */
   public function testCountryList() {
     $validator = new Validator($this->countryManager);
@@ -45,7 +47,7 @@ class ValidatorTest extends UnitTestCase {
   /**
    * Tests phone number validation.
    *
-   * ::covers isValid
+   * ::covers isValid.
    */
   public function testIsValid() {
     // Test valid Canadian number.

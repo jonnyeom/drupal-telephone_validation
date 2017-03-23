@@ -15,11 +15,15 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class SettingsForm extends ConfigFormBase {
 
   /**
+   * Validator service.
+   *
    * @var \Drupal\telephone_validation\Validator
    */
   protected $validator;
 
   /**
+   * Element Info Manager service.
+   *
    * @var \Drupal\Core\Render\ElementInfoManagerInterface
    */
   protected $elementInfoManager;
@@ -31,7 +35,7 @@ class SettingsForm extends ConfigFormBase {
    *   The factory for configuration objects.
    * @param Validator $validator
    *   Telephone validation service.
-   * @param ElementInfoManagerInterface $element_info_manager
+   * @param \Drupal\Core\Render\ElementInfoManagerInterface $element_info_manager
    *   Collects available render array element types.
    */
   public function __construct(ConfigFactoryInterface $config_factory, Validator $validator, ElementInfoManagerInterface $element_info_manager) {
@@ -50,6 +54,7 @@ class SettingsForm extends ConfigFormBase {
       $container->get('plugin.manager.element_info')
     );
   }
+
   /**
    * {@inheritdoc}
    */
@@ -112,6 +117,7 @@ class SettingsForm extends ConfigFormBase {
   public function getCountry(array &$form, FormStateInterface $form_state) {
     return $form['country'];
   }
+
   /**
    * {@inheritdoc}
    */

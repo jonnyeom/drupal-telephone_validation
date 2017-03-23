@@ -13,11 +13,15 @@ use libphonenumber\PhoneNumberFormat;
 class Validator {
 
   /**
+   * Phone Number util.
+   *
    * @var \libphonenumber\PhoneNumberUtil
    */
-  public $phone_utils;
+  public $phoneUtils;
 
   /**
+   * Country Manager service.
+   *
    * @var \Drupal\Core\Locale\CountryManagerInterface
    */
   public $countryManager;
@@ -26,16 +30,16 @@ class Validator {
    * Validator constructor.
    */
   public function __construct(CountryManagerInterface $country_manager) {
-    $this->phone_utils = PhoneNumberUtil::getInstance();
+    $this->phoneUtils = PhoneNumberUtil::getInstance();
     $this->countryManager = $country_manager;
   }
 
   /**
    * Check if number is valid for given settings.
    *
-   * @param $value
+   * @param string $value
    *   Phone number.
-   * @param $format
+   * @param int $format
    *   Supported input format.
    * @param array $country
    *   (optional) List of supported countries. If empty all countries are valid.
@@ -49,7 +53,7 @@ class Validator {
       // Get default country.
       $default_region = ($format == PhoneNumberFormat::NATIONAL) ? reset($country) : NULL;
       // Parse to object.
-      $number = $this->phone_utils->parse($value, $default_region);
+      $number = $this->phoneUtils->parse($value, $default_region);
     }
     catch (\Exception $e) {
       // If number could not be parsed by phone utils that's a one good reason
@@ -57,14 +61,14 @@ class Validator {
       return FALSE;
     }
     // Perform basic telephone validation.
-    if (!$this->phone_utils->isValidNumber($number)) {
+    if (!$this->phoneUtils->isValidNumber($number)) {
       return FALSE;
     }
 
     // If country array is not empty and default region can be loaded
     // do region matching validation.
     // This condition is always TRUE for national phone number format.
-    if (!empty($country) && $default_region = $this->phone_utils->getRegionCodeForNumber($number)) {
+    if (!empty($country) && $default_region = $this->phoneUtils->getRegionCodeForNumber($number)) {
       // Check if number's region matches list of supported countries.
       if (array_search($default_region, $country) === FALSE) {
         return FALSE;
@@ -83,11 +87,11 @@ class Validator {
   public function getCountryList() {
     $regions = [];
     foreach ($this->countryManager->getList() as $region => $name) {
-      $region_meta = $this->phone_utils->getMetadataForRegion($region);
+      $region_meta = $this->phoneUtils->getMetadataForRegion($region);
       if (is_object($region_meta)) {
         $regions[$region] = (string) new FormattableMarkup('@country - @country_code', [
           '@country' => $name,
-          '@country_code' => $region_meta->getCountryCode() . $region_meta->getLeadingDigits()
+          '@country_code' => $region_meta->getCountryCode() . $region_meta->getLeadingDigits(),
         ]);
       }
     }

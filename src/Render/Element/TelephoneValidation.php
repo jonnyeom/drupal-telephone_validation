@@ -34,7 +34,8 @@ class TelephoneValidation extends Tel {
   /**
    * Form element validation handler.
    *
-   * Note that #maxlength and #required is validated by _form_validate() already.
+   * Note that #maxlength and #required is validated by _form_validate()
+   * already.
    */
   public static function validateTel(&$element, FormStateInterface $form_state, &$complete_form) {
 
