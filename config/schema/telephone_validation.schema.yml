@@ -1,4 +1,4 @@
-field.field.*.*.*:
+field.field.*.*.*.third_party.telephone_validation:
   type: mapping
   label: 'Extra settings for validation'
   mapping:
