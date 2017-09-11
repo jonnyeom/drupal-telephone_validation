@@ -2,21 +2,16 @@
 
 namespace Drupal\telephone_validation\Plugin\Validation\Constraint;
 
+use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
+use Drupal\telephone_validation\Validator;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Validator\Constraint;
-use Symfony\Component\Validator\ConstraintValidatorInterface;
-use Symfony\Component\Validator\ExecutionContextInterface;
+use Symfony\Component\Validator\ConstraintValidator;
 
 /**
- * Validates the LinkExternalProtocols constraint.
+ * Validates the TelephoneConstraint constraint.
  */
-class TelephoneConstraintValidator implements ConstraintValidatorInterface {
-
-  /**
-   * Stores the validator's state during validation.
-   *
-   * @var \Symfony\Component\Validator\ExecutionContextInterface
-   */
-  protected $context;
+class TelephoneConstraintValidator extends ConstraintValidator implements ContainerInjectionInterface {
 
   /**
    * Validator service.
@@ -28,9 +23,18 @@ class TelephoneConstraintValidator implements ConstraintValidatorInterface {
   /**
    * {@inheritdoc}
    */
-  public function initialize(ExecutionContextInterface $context) {
-    $this->context = $context;
-    $this->validator = \Drupal::service('telephone_validation.validator');
+  public static function create(ContainerInterface $container) {
+    return new static($container->get('telephone_validation.validator'));
+  }
+
+  /**
+   * Constructs a new TelephoneConstraintValidator.
+   *
+   * @param \Drupal\telephone_validation\Validator $validator
+   *   Telephone number validation service.
+   */
+  public function __construct(Validator $validator) {
+    $this->validator = $validator;
   }
 
   /**
