@@ -18,9 +18,11 @@ use Drupal\Core\Form\FormStateInterface;
  *    // Customize validation settings. If not global settings will be in use.
  *   '#element_validate_settings' => [
  *     // By default input format should be consistent with E164 standard.
- *     'valid_format' => PhoneNumberFormat::E164,
+ *     'format' => PhoneNumberFormat::E164,
  *     // By default all countries are valid.
- *     'valid_countries' => [],
+ *     'country' => [],
+ *     // Default country if national format used.
+ *     'default_country' => null,
  *   ],
  * );
  * @endcode
@@ -46,7 +48,7 @@ class TelephoneValidation extends Tel {
     $value = $element['#value'];
 
     // Check if value is valid (if not empty).
-    if ($value !== '' && !$service->isValid($value, $element['#element_validate_settings']['format'], $element['#element_validate_settings']['country'])) {
+    if ($value !== '' && !$service->isValid($value, $element['#element_validate_settings']['format'], $element['#element_validate_settings']['country'], $element['#element_validate_settings']['default_country'])) {
       $form_state->setError($element, t('The phone number %phone is not valid.', ['%phone' => $value]));
     }
   }

@@ -65,7 +65,8 @@ class TelephoneConstraintValidator extends ConstraintValidator implements Contai
     if (!$this->validator->isValid(
       $number['value'],
       $field->getThirdPartySetting('telephone_validation', 'format'),
-      $field->getThirdPartySetting('telephone_validation', 'country')
+      $field->getThirdPartySetting('telephone_validation', 'country'),
+      $field->getThirdPartySetting('telephone_validation', 'default_country')
     )) {
       $this->context->addViolation($constraint->message, ['@number' => $number['value']]);
     }

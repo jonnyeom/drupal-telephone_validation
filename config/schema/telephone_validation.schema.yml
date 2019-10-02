@@ -25,3 +25,6 @@ field.field.*.*.*.third_party.telephone_validation:
       sequence:
         type: string
         label: 'Country'
+    default_country:
+      type: string
+      label: 'Country'

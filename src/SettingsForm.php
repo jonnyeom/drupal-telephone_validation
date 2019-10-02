@@ -90,21 +90,30 @@ class SettingsForm extends ConfigFormBase {
       ],
       '#ajax' => [
         'callback' => '::getCountry',
-        'wrapper' => 'telephone-validation-country',
+        'wrapper' => 'telephone-validation-default-country',
         'method' => 'replace',
       ],
     ];
 
     // Define available countries (or country if format = NATIONAL).
-    $val = $form_state->getValue('format') ?: $form['format']['#default_value'];
     $form['country'] = [
       '#type' => 'select',
       '#title' => $this->t('Valid countries'),
       '#description' => t('If no country selected all countries are valid.'),
       '#default_value' => $config->get('country') ?: [],
-      '#multiple' => $val != PhoneNumberFormat::NATIONAL,
+      '#multiple' => TRUE,
       '#options' => $this->validator->getCountryList(),
-      '#prefix' => '<div id="telephone-validation-country">',
+    ];
+
+    // Define default country
+    $val = $form_state->getValue('format') ?: $form['format']['#default_value'];
+    $form['default_country'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Default country'),
+      '#default_value' => $config->get('default_country'),
+      '#required' => TRUE,
+      '#options' => $this->validator->getCountryList(),
+      '#prefix' => '<div id="telephone-validation-default-country">',
       '#suffix' => '</div>',
     ];
 
@@ -127,6 +136,7 @@ class SettingsForm extends ConfigFormBase {
     $this->config('telephone_validation.settings')
       ->set('format', $form_state->getValue('format'))
       ->set('country', is_array($country) ? $country : [$country])
+      ->set('default_country', $form_state->getValue('default_country'))
       ->save();
     // Clear element info cache.
     $this->elementInfoManager->clearCachedDefinitions();
